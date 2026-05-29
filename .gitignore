@@ -1,0 +1,9 @@
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# Backup files our own installers create
+*.bak
+.claude/settings.pack.json

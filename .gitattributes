@@ -1,0 +1,27 @@
+# Default: normalize line endings to LF in the repo, restore platform
+# convention on checkout.
+* text=auto eol=lf
+
+# Shell scripts MUST be LF on disk on every platform — CRLF breaks bash.
+*.sh        text eol=lf
+*.bash      text eol=lf
+
+# PowerShell handles either, but Windows tooling expects CRLF.
+*.ps1       text eol=crlf
+*.psm1      text eol=crlf
+
+# Markdown / config / source — repo-stored as LF, no auto-conversion.
+*.md        text eol=lf
+*.json      text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+*.toml      text eol=lf
+
+# Binary safety
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.ico       binary
+*.zip       binary
+*.gz        binary
