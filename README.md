@@ -59,11 +59,9 @@ Standalone LLM forensics + bias map + falsifiable improvement plan
 
 Neither pack references any of these:
 
-- ❌ MCP servers (`mcp__playwright__*`, `mcp__plugin_*`)
-- ❌ Salesforce-internal subagents (`innerloop:*`, `udd:*`)
-- ❌ Domain skills (`gus:*`, `afcc-lead:*`, `bug-investigator-expert`,
-  `api-expert`, `total-recall:*`, `claude-md-management:*`,
-  `aisuite:*`, `3pp:*`, etc.)
+- ❌ Third-party MCP servers
+- ❌ Organization-specific subagent plugins
+- ❌ Domain-specific Claude Code skills
 
 The Independent Code Reviewer and Security Engineer roles use the
 built-in `general-purpose` subagent type with **embedded prompt

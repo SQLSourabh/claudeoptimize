@@ -9,7 +9,7 @@ project on Linux or macOS:
 3. **Evidence-first, no-hand-waving operating rules.**
 
 This pack uses **only built-in Claude Code primitives** — no
-plugins, no MCP servers, no Salesforce-internal subagents.
+plugins, no MCP servers, no organization-specific subagents.
 
 ## Requirements
 
