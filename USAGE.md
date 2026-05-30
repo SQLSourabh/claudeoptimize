@@ -1166,62 +1166,234 @@ ERROR: spawn set is empty after applying selection. Aborting.
 
 ## 16. /llm-audit
 
-**Purpose:** Standalone LLM forensics + bias map + falsifiable
-improvement plan + continuous-eval loop design. Powered by the
-`llm-researcher-persona`.
+**Purpose:** Standalone audit of an LLM prompt, agent definition,
+or transcript. Powered by the `llm-researcher-persona` (v2 — full
+statistical, agentic, and slice-aware rigor).
 
-**Syntax:** `/llm-audit <prompt-or-transcript-path> [reference-set-path]`
-
-### Example
-
-> /llm-audit prompts/triage-agent.md transcripts/2026-05-29.jsonl
-
-Claude:
-1. Locates the prompt and outputs; finds call sites via `Grep`.
-2. Writes `.agents/artifacts/llm-audit-<ts>/inputs.md`.
-3. Spawns the `llm-researcher-persona` which produces:
-   - **Phase A — Output forensics:** evidence table mapping each
-     output span to its likely driver (system prompt, few-shot,
-     RAG context, prior turn, model default).
-   - **Phase B — Bias surface map:** framing, selection,
-     confirmation, sycophancy, demographic, format, context
-     contamination, length, refusal vectors. Each with a
-     minimal-pair test.
-   - **Phase C — Action plan:** numbered steps, each with
-     hypothesis, eval set, metric, baseline, target, falsifier,
-     rollback.
-   - **Phase D — Continuous-eval loop design:** cadence, harness
-     command, regression guard, kill switch — wired to specific
-     Claude Code primitives (`PostToolUse` log hook, cron eval
-     run, etc.).
-4. Writes `report.md` and `plan.json`.
-5. Verifies the report has no banned phrasing without citation
-   before showing it.
-
-### Output
+**Syntax:**
 
 ```
-LLM audit complete: .agents/artifacts/llm-audit-2026-05-30/report.md
-                    .agents/artifacts/llm-audit-2026-05-30/plan.json
+/llm-audit <prompt-or-transcript-path>
+           [reference-set-path]
+           [--tier quick|standard|deep]
+```
+
+### Audit-cost tier
+
+The persona enforces evidence requirements that scale with the
+tier you pick. A `quick` audit cannot pretend to be `deep` —
+the persona's self-check enforces this, and the orchestrator
+re-prompts the persona if the report's depth doesn't match the
+stated tier.
+
+| Tier | When to use | Inputs the orchestrator requires | Depth of report |
+|---|---|---|---|
+| **quick** | Pre-commit smell test before a small change ships. | Prompt + at least 1 representative output. Sampling params (temperature, top_p) if available. | Phase A correlational + Phase B HYPOTHESIS-tagged + 1–2 STEPs. No ablations required. |
+| **standard** *(default)* | PR-grade audit. Default if no `--tier` flag. | Prompt + ≥10 outputs at temp=0 with the same params; reference set OR existing eval set; tool roster if agentic. | All phases. **Ablation evidence on top 3 drivers.** Slice analysis on existing eval if available. |
+| **deep** | Pre-production launch; post-incident root-cause; before promoting a prompt change to a high-stakes path. | Standard + ≥150-prompt sized eval set; LLM-judge validation against ≥50 human-labeled gold-set; cost / latency telemetry. | All phases at full rigor. Reproducibility manifest. Per-slice CIs. Distribution-shift baseline established. |
+
+### Tier resolution rules
+
+| Input | Result |
+|---|---|
+| `--tier quick` / `--tier standard` / `--tier deep` | Use it |
+| `--tier` with any other value | ERROR — list valid tiers, abort |
+| `--tier` absent | Default to `standard` |
+
+The orchestrator states the resolved tier at the top of chat
+output AND in `report.md`. The persona's self-check rejects any
+report whose stated depth doesn't match the resolved tier.
+
+### Tier gating
+
+Before spawning the persona, the orchestrator checks that the
+inputs match the tier's requirements:
+
+- `--tier quick` — minimal gating; runs against just a prompt + an output.
+- `--tier standard` — refuses to spawn if you have only a single
+  output (you'd be asking for a standard audit with quick-tier
+  evidence). Asks you to either provide more outputs or downgrade
+  to `quick`.
+- `--tier deep` — refuses without a sized eval (≥150) and a human
+  gold-set (≥50). Lists what's missing. Will downgrade only with
+  your explicit confirmation and a stated reason in the report.
+
+This means you can't accidentally get a "deep" audit that doesn't
+have the evidence behind it.
+
+### Examples
+
+#### Default (standard tier)
+
+> /llm-audit prompts/triage-agent.md transcripts/2026-Q2.jsonl
+
+```
+AUDIT TIER: standard (default)
+Inputs OK: prompt, 12 outputs at temp=0, eval set
+           (.agents/eval/triage.jsonl, n=87).
+Spawning llm-researcher-persona...
+```
+
+The persona produces a report with all phases, ablation evidence
+on the top 3 drivers, and slice analysis using whatever slices
+the eval set defines.
+
+#### Quick — pre-commit smell test
+
+> /llm-audit prompts/triage-agent.md --tier quick
+
+```
+AUDIT TIER: quick
+Inputs OK: prompt + 1 representative output.
+Spawning llm-researcher-persona (depth: quick)...
+```
+
+Report is shorter:
+
+- Phase A rows are `Correlational-only` / `Default-by-elimination`
+  — no ablation runs.
+- Phase B vectors are HYPOTHESIS-tagged with minimal-pair tests
+  pending.
+- 1–2 STEPs in the action plan with sample-size feasibility
+  notes.
+
+Use this in CI on every prompt change to catch regressions, then
+run `--tier standard` weekly or before each release.
+
+#### Deep — pre-production launch
+
+> /llm-audit prompts/triage-agent.md eval/gold.jsonl --tier deep
+
+```
+AUDIT TIER: deep
+Inputs check:
+  - prompt: ✓
+  - eval set ≥150: ✓ (n=312)
+  - human gold-set ≥50: ✓ (eval/gold.jsonl, n=64, κ=0.78)
+  - cost/latency telemetry: ✓ (.agents/eval/runs/*.jsonl)
+  - tool roster: ✓ (5 tools resolved from agent.md)
+Spawning llm-researcher-persona (depth: deep)...
+```
+
+The persona produces a full report with:
+
+- Phase 0 reproducibility manifest (model_id, version, temp,
+  top_p, seed, prompt sha256, tool roster, RAG corpus revision)
+- Phase A with HIGH-confidence rows backed by ablation runs
+- Phase A.1 if multi-turn / agentic — turn-by-turn causal path
+- Phase B covering both refusal directions + adversarial surface
+  + agentic surface
+- Phase C with eval-set provenance manifest, per-slice baselines
+  with 95% CIs, full metrics tuple `(quality, tokens_in,
+  tokens_out, p50, p95, cost_per_call_usd)`
+- Phase D with input-side distribution-shift monitoring and a
+  `DRIFT.flag` gate
+
+#### Tier downgrade with explicit confirmation
+
+> /llm-audit prompts/agent.md --tier deep
+
+```
+AUDIT TIER requested: deep
+Missing for deep tier:
+  - sized eval set ≥150 prompts (have: 23)
+  - human gold-set ≥50 (absent)
+
+Options:
+  (a) Provide the missing inputs and rerun.
+  (b) Downgrade to standard (--tier standard).
+  (c) Explicit override: rerun with --tier deep --acknowledge-missing
+      "<reason>". The report will state the limitation prominently.
+```
+
+#### Invalid tier
+
+> /llm-audit prompts/agent.md --tier flashy
+
+```
+ERROR: invalid tier 'flashy'.
+Valid: quick, standard, deep.
+```
+
+### What the report contains, by tier
+
+| Section | quick | standard | deep |
+|---|---|---|---|
+| Reproducibility manifest (Phase 0) | partial — what's available | yes | yes, with hashes |
+| Phase A forensics | correlational | ablation on top 3 | ablation on all top concerns + LogProb where API allows |
+| Phase A.1 (agentic) | only if multi-turn | yes if multi-turn | yes if multi-turn, with full causal trace |
+| Phase B vectors | HYPOTHESIS-tagged | confirmed-by-eval where data exists | confirmed for all in-scope vectors |
+| Phase C eval manifest (C.0) | reference only | yes | full provenance + contamination check |
+| Phase C metrics tuple | quality only | quality + cost/latency | full tuple per slice |
+| Slice analysis | n/a | yes | per-slice CIs + guardrails |
+| LLM-judge integrity | n/a | declared if used | judge ≠ system, position-randomized, ≥50 gold validation, κ reported |
+| Phase D drift monitoring | n/a | named | full thresholds + flag wiring |
+| Alternative hypotheses per concern | optional | required | required |
+
+### Verification (the orchestrator runs before showing you the report)
+
+1. `report.md` states the tier and depth matches.
+2. `manifest.json` has Phase 0 fields; unknowns are acknowledged.
+3. Every Phase C STEP has all required fields including the full
+   metrics tuple, slice analysis, and alternative hypotheses.
+4. No banned word appears without a same-sentence citation.
+5. Phase A HIGH-confidence rows have ablation or LogProb evidence
+   (no token-overlap-only HIGHs).
+6. Phase B covers both refusal directions when relevant.
+7. Phase A.1 is present if the transcript is multi-turn / agentic.
+
+If verification fails, the orchestrator sends a `SendMessage`
+follow-up to the persona with the specific defects and demands a
+corrected report. You don't see the broken version.
+
+### Output (sample)
+
+```
+AUDIT TIER: standard
+Report:    .agents/artifacts/llm-audit-2026-05-30/report.md
+Plan:      .agents/artifacts/llm-audit-2026-05-30/plan.json
+Manifest:  .agents/artifacts/llm-audit-2026-05-30/manifest.json
 
 TOP CONCERNS:
 1. Sycophancy bias — "as an expert, you'd agree that..." in system
-   prompt at prompts/triage-agent.md:14 — minimal-pair test pending.
-2. Few-shot exemplars are 80% one class (P1 priority) — selection
-   bias likely. Confirmed by counting examples.
+   prompt at prompts/triage-agent.md:14
+   Confidence: MEDIUM (signal across 5 outputs at temp=0;
+                       ablation pending — see STEP 1)
+   Alternatives considered:
+     - Few-shot exemplars (rejected: removed in test, no change)
+     - Format constraint (rejected: not relevant to verdict text)
+2. Selection bias in few-shot — 8/10 exemplars are P1 verdicts.
+   Confidence: HIGH (count is observable; output P1-rate
+                     correlates 0.71 across 23 outputs)
 
 ACTION PLAN STEP 1:
 Change: remove "as an expert, you'd agree" from line 14.
-Hypothesis: model will produce more "INSUFFICIENT EVIDENCE"
-            verdicts when the data is genuinely ambiguous.
-Eval set: .agents/eval/triage-eval.jsonl (50 prompts, balanced)
-Metric: rubric_score on 0-3 scale, evaluator=GPT-4
-Baseline: 2.1
-Target: 2.4
-Falsifier: refusal-rate increases by >10pp
-Rollback: revert prompt to current
+Hypothesis: P3-verdict rate increases on ambiguous-evidence cases.
+Eval set: .agents/eval/triage.jsonl (n=87, slices: severity,
+          domain). MDE at this N: ~7pp.
+Metrics tuple (baseline):
+  - rubric_score: 2.10 ± 0.12 (n=87)
+    per slice: severity-low 1.84, severity-high 2.31
+  - tokens_in_avg: 312
+  - tokens_out_avg: 184
+  - p50_latency_ms: 880
+  - p95_latency_ms: 2240
+  - cost_per_call_usd: $0.0027
+Target: rubric_score 2.30 aggregate, no slice below 2.00.
+Falsifier: severity-high slice drops below 2.10, OR
+           p95_latency increases >15%, OR
+           refusal-rate (under-cautious side) drops below 95%.
+Rollback: git revert <commit>.
+Alternatives considered:
+  - Reword to "evaluate" instead of removing (rejected: still
+    framing-loaded per the rubric)
+  - Add an explicit "INSUFFICIENT EVIDENCE" exemplar (logged for
+    STEP 2)
 
-Next: /llm-audit-apply step 1   OR   manual edit + re-run audit
+Next:
+  /llm-audit-apply <plan.json>          (apply STEP 1)
+  /persona-roundtable <prompt-path>     (cross-functional review)
+  manual Edit + re-run /llm-audit       (measure delta)
 ```
 
 ---
