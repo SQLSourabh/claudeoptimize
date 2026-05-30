@@ -850,86 +850,187 @@ match, the section says "No checkpoints recorded for 2026-05-29."
 change, scope, or decision. Up to 15 personas in parallel, then
 cross-examination, then synthesis.
 
-**Syntax:** `/persona-roundtable <topic | path | git ref>`
+**Syntax:**
 
-### Personas dispatched
+```
+/persona-roundtable <topic|path|gitref> [--exclude N,M,...] [--only N,M,...]
+```
 
-The orchestrator picks **only the personas relevant to scope**:
+`--exclude` and `--only` are mutually exclusive. Default
+(no flag) = full set, then relevance-gated.
 
-| Persona | When picked |
-|---|---|
-| CEO | Always (strategic lens) |
-| CFO | Always (cost lens) |
-| CTO | Always (tech debt + scalability) |
-| Software Architect | When new modules / dependencies / layers added |
-| PM | Always (scope, schedule, RAID) |
-| Staff Software Engineer | Code in diff |
-| Independent Code Reviewer | Code in diff (cross-checks Staff Eng) |
-| Security Engineer | Code in diff |
-| QA Lead | Code in diff |
-| LLM Researcher | Scope involves LLM prompt / agent / output |
-| DevOps / SRE | Infra, deploy, release-impacting code |
-| Data Engineer | DB / ETL / events / pipelines |
-| UX / Copy | User-facing surface |
-| Compliance / Privacy | User data |
-| API Steward | Public API / library exports / CLI flags / config keys / event schemas |
+### Persona ordinal list
 
-### Example: review a PR
+The ordinals are stable — adding new personas appends, never
+renumbers.
+
+| # | Persona | Short name(s) | Default-relevance trigger |
+|---|---|---|---|
+| 1 | CEO | `ceo` | always |
+| 2 | CFO | `cfo` | always |
+| 3 | CTO / CIO | `cto`, `cio` | always |
+| 4 | Software Architect | `architect`, `arch` | new modules / deps / layers |
+| 5 | Project Manager | `pm`, `project-manager` | always |
+| 6 | Staff Software Engineer | `staff-eng`, `engineer`, `eng` | code in scope |
+| 7 | Independent Code Reviewer | `reviewer`, `code-reviewer`, `independent` | code in scope |
+| 8 | Security Engineer | `security`, `sec` | code in scope |
+| 9 | QA Lead | `qa`, `qa-lead` | code in scope |
+| 10 | ML/AI LLM Researcher | `llm`, `llm-researcher`, `researcher` | LLM prompt / agent / output |
+| 11 | DevOps / SRE | `devops`, `sre`, `devops-sre` | infra / deploy / release-impacting |
+| 12 | Data Engineer | `data`, `data-engineer`, `de` | DB / ETL / events / pipelines |
+| 13 | UX / Copy | `ux`, `copy`, `ux-copy` | user-facing surface |
+| 14 | Compliance / Privacy | `compliance`, `privacy` | user data |
+| 15 | API Steward | `api`, `api-steward`, `steward` | public API / lib exports / CLI flags / config keys / events |
+
+### Selection precedence
+
+Applied in this order:
+
+- **Step 1:** Start with the full set (1–15).
+- **Step 2:** If `--only` is given, intersect with that list.
+- **Step 3:** Else if `--exclude` is given, subtract that list.
+- **Step 4:** Apply the relevance gate (right-most column above).
+  Personas listed via `--only` are NOT relevance-gated — your
+  explicit instruction wins.
+- **Step 5:** Spawn the result.
+
+### Audit before spawn
+
+The orchestrator prints a spawn manifest before dispatching:
+
+```
+Roundtable spawn plan
+- topic: <resolved topic>
+- selection mode: full | only | exclude
+- requested: <ordinals as listed by user, normalized>
+- after relevance gate: <final ordinals + names>
+- skipped (explain): <ordinal — reason>
+```
+
+If the resolved set is empty, the orchestrator aborts. The
+synthesis report (`report.md`) also includes a **Spawn manifest**
+section so any reader can audit which lenses were applied and a
+**Coverage gaps** section listing the lenses that were excluded.
+
+### Examples
+
+#### Default — full set (relevance-gated)
 
 > /persona-roundtable origin/main..HEAD
 
-Claude:
-1. Builds `.agents/artifacts/roundtable-<ts>/facts.md` from
-   `git diff origin/main..HEAD`, file reads, and current build/test status.
-2. Spawns relevant personas in parallel (single message, multiple
-   `Agent` tool calls). Each returns a structured verdict.
-3. For every "QUESTIONS FOR OTHER PERSONAS" item, sends a
-   `SendMessage` follow-up to the addressed persona.
-4. Writes `report.md` with consensus, disagreements, unanimous
-   risks, and open human questions.
+Spawns all 15 personas, then the relevance gate trims those whose
+trigger condition isn't met by the diff. For a docs-only change
+you might end up with just 1, 2, 3, 5 (CEO/CFO/CTO/PM) since
+there's no code, infra, or DB to review.
+
+#### Skip the C-suite for a pure code review
+
+> /persona-roundtable HEAD~1..HEAD --exclude 1,2
 
 ```
-Roundtable report: .agents/artifacts/roundtable-2026-05-30/report.md
-
-UNANIMOUS RISKS (all personas agreed):
-1. No retention TTL on rate-limiter Redis keys (Compliance + DevOps).
-   Evidence: src/middleware/rate_limit.py:42.
-2. New env var LIMITER_REDIS_URL undocumented in README (UX/Copy + DevOps).
-
-DISAGREEMENT (logged for human):
-- Architect persona: recommends extracting middleware to a shared
-  package. Staff Engineer: disagrees, says single-use, in-place is
-  fine. See report.md §3.
-
-OPEN QUESTIONS FOR HUMAN:
-- Bypass list for internal IPs (CFO + Compliance both flagged)
+Roundtable spawn plan
+- topic: HEAD~1..HEAD
+- selection mode: exclude
+- requested: exclude [1, 2] (CEO, CFO)
+- after relevance gate: [3, 4, 5, 6, 7, 8, 9, 11]
+  (CTO, Architect, PM, StaffEng, Reviewer, Security, QA, DevOps)
+- skipped: 10 (no LLM in diff), 12 (no DB), 13 (no UX), 14 (no
+  user data), 15 (no public API)
 ```
 
-### Example: review a single file
+#### Mixed ordinals + names
 
-> /persona-roundtable src/middleware/rate_limit.py
+> /persona-roundtable src/payments/ --exclude ceo,cfo,2
 
-Same workflow, scope = that file's content + a `Grep` for its
-call sites.
+Wait — `cfo` resolves to 2, which the user also listed. The
+orchestrator de-duplicates: `--exclude 1,2` (CEO + CFO).
 
-### Example: review a topic
+#### Only specific personas (forced — no relevance gate)
 
-> /persona-roundtable "Should we adopt Postgres pgvector for embeddings?"
+> /persona-roundtable docs/api.md --only 4,15
 
-The orchestrator can't `git diff` this, so it does a focused
-codebase survey relevant to "embeddings" and to the existing
-search / vector-store layer, builds `facts.md` accordingly,
-then dispatches.
+```
+Roundtable spawn plan
+- topic: docs/api.md
+- selection mode: only
+- requested: only [4, 15] (Architect, API Steward)
+- after relevance gate: [4, 15]
+  (forced by --only; relevance gate not applied)
+- skipped: all others (excluded by --only)
+```
+
+You'll get **only** the Architect and API Steward — useful when
+you're shipping a documentation update and want focused feedback,
+not 15 lenses.
+
+#### Security audit only
+
+> /persona-roundtable HEAD~5..HEAD --only security,qa,reviewer
+
+Forces ordinals 7, 8, 9 — the three code-quality lenses.
+
+#### Strip all the executives
+
+> /persona-roundtable . --exclude 1,2,3,4,5
+
+Skips the C-suite + PM. You're left with just the technical
+personas, then relevance-gated.
+
+#### Single-name shorthand
+
+> /persona-roundtable src/auth/ --only security
+
+Just the Security Engineer.
+
+### Error cases
+
+**Both flags:**
+
+> /persona-roundtable HEAD --exclude 1 --only 2
+
+```
+ERROR: --exclude and --only are mutually exclusive. Pick one.
+```
+
+**Unknown name:**
+
+> /persona-roundtable HEAD --exclude finops
+
+```
+ERROR: 'finops' is not a known persona name. Valid names:
+  ceo, cfo, cto, cio, architect, arch, pm, project-manager,
+  staff-eng, engineer, eng, reviewer, code-reviewer, independent,
+  security, sec, qa, qa-lead, llm, llm-researcher, researcher,
+  devops, sre, devops-sre, data, data-engineer, de, ux, copy,
+  ux-copy, compliance, privacy, api, api-steward, steward
+Or use ordinals: 1..15
+```
+
+**Empty resolved set:**
+
+> /persona-roundtable . --only ceo --exclude ceo
+
+(Caught earlier — both flags = error.)
+
+> /persona-roundtable . --exclude 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
+
+```
+ERROR: spawn set is empty after applying selection. Aborting.
+```
 
 ### Reading the report
 
 `report.md` is structured exactly:
-1. **Points of consensus** with personas + evidence
-2. **Points of disagreement** with each side, evidence, what would
-   resolve
-3. **Unanimous risks** — high-confidence concerns
-4. **Recommended next steps** with confidence + evidence
-5. **Open questions for the human**
+
+1. **Spawn manifest** — selection mode + ordinals spawned
+2. **Points of consensus** with personas + evidence
+3. **Points of disagreement** with each side, evidence, what would resolve
+4. **Unanimous risks** — high-confidence concerns
+5. **Recommended next steps** with confidence + evidence
+6. **Open questions for the human** — including any cross-exam
+   question routed to an excluded persona
+7. **Coverage gaps** — lenses that were excluded and what they
+   would have looked at, so you know what wasn't reviewed
 
 ---
 
