@@ -14,39 +14,44 @@ the table of contents, jump to what you need.
 ## Table of contents
 
 **Hooks (auto-fire, no command needed)**
-1. [secrets-guard](#1-secrets-guard) — blocks credential leaks
-2. [scope-guard](#2-scope-guard) — warns on out-of-scope edits
-3. [test-first-enforcer](#3-test-first-enforcer) — nudges TDD
-4. [blast-radius](#4-blast-radius) — warns on widely-imported files
-5. [edit-recorder](#5-edit-recorder) — silent state collector
-6. [SessionStart / PreCompact / Stop checkpoint hooks](#6-checkpoint-hooks) — session memory
+
+- §1. [secrets-guard](#1-secrets-guard) — blocks credential leaks
+- §2. [scope-guard](#2-scope-guard) — warns on out-of-scope edits
+- §3. [test-first-enforcer](#3-test-first-enforcer) — nudges TDD
+- §4. [blast-radius](#4-blast-radius) — warns on widely-imported files
+- §5. [edit-recorder](#5-edit-recorder) — silent state collector
+- §6. [SessionStart / PreCompact / Stop checkpoint hooks](#6-checkpoint-hooks) — session memory
 
 **Slash commands**
-7. [/scope](#7-scope) — declare session scope
-8. [/spec](#8-spec) — structured spec before code
-9. [/repro](#9-repro) — failing test before fix
-10. [/adr](#10-adr) — architecture decision record
-11. [/pr-preflight](#11-pr-preflight) — pre-push verdict
-12. [/handoff](#12-handoff) — next-session resumption doc
-13. [/retro](#13-retro) — session retrospective
-14. [/EOD_Summary](#14-eod_summary) — daily rollup
-15. [/persona-roundtable](#15-persona-roundtable) — multi-perspective review
-16. [/llm-audit](#16-llm-audit) — LLM output forensics
+
+- §7. [/scope](#7-scope) — declare session scope
+- §8. [/spec](#8-spec) — structured spec before code
+- §9. [/repro](#9-repro) — failing test before fix
+- §10. [/adr](#10-adr) — architecture decision record
+- §11. [/pr-preflight](#11-pr-preflight) — pre-push verdict
+- §12. [/handoff](#12-handoff) — next-session resumption doc
+- §13. [/retro](#13-retro) — session retrospective
+- §14. [/EOD_Summary](#14-eod_summary) — daily rollup
+- §15. [/persona-roundtable](#15-persona-roundtable) — multi-perspective review
+- §16. [/llm-audit](#16-llm-audit) — LLM output forensics
 
 **Personas (used inside /persona-roundtable)**
-17. [Persona reference](#17-persona-reference) — when to invoke each
+
+- §17. [Persona reference](#17-persona-reference) — when to invoke each
 
 **Workflows (combining commands)**
-18. [Building a new feature, end-to-end](#18-workflow-new-feature)
-19. [Fixing a production bug](#19-workflow-bug-fix)
-20. [Reviewing someone else's PR](#20-workflow-pr-review)
-21. [Auditing a Claude prompt](#21-workflow-prompt-audit)
-22. [Resuming after a long break](#22-workflow-resumption)
+
+- §18. [Building a new feature, end-to-end](#18-workflow-new-feature)
+- §19. [Fixing a production bug](#19-workflow-bug-fix)
+- §20. [Reviewing someone else's PR](#20-workflow-pr-review)
+- §21. [Auditing a Claude prompt](#21-workflow-prompt-audit)
+- §22. [Resuming after a long break](#22-workflow-resumption)
 
 **Ops**
-23. [Configuration knobs](#23-configuration)
-24. [Disabling hooks temporarily](#24-disabling-hooks)
-25. [Troubleshooting](#25-troubleshooting)
+
+- §23. [Configuration knobs](#23-configuration)
+- §24. [Disabling hooks temporarily](#24-disabling-hooks)
+- §25. [Troubleshooting](#25-troubleshooting)
 
 ---
 
@@ -608,6 +613,7 @@ mutated.
 and produce a verdict before you create a PR.
 
 **Modes:**
+
 - `/pr-preflight` — warnings allowed
 - `/pr-preflight --strict` — warnings count as failures
 
