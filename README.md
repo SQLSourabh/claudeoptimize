@@ -30,11 +30,14 @@ the hook implementation language so each platform runs natively.
 `/persona-roundtable <scope>` runs four phases:
 1. **Establish facts** — build `facts.md` (the single source of
    truth all personas may cite).
-2. **Parallel dispatch** — 9 personas in one round-trip:
+2. **Parallel dispatch** — up to 14 personas in one round-trip:
    - Bespoke: CEO, CFO, CTO, PM, Staff Software Engineer, QA Lead,
-     LLM Researcher (these are local persona files).
+     LLM Researcher, DevOps/SRE, Data Engineer, UX/Copy,
+     Compliance/Privacy, API Steward.
    - Built-in `general-purpose` with embedded prompt templates:
      Independent Code Reviewer, Security Engineer.
+   - The orchestrator selects only the personas relevant to the
+     scope (e.g., skip Data Engineer if no DB/ETL involvement).
 3. **Cross-examination** — every "QUESTIONS FOR OTHER PERSONAS" is
    routed via `SendMessage` so personas literally talk to each
    other.
@@ -55,6 +58,33 @@ Standalone LLM forensics + bias map + falsifiable improvement plan
 + continuous-eval loop design, powered by the
 `llm-researcher-persona`.
 
+### Goal 4 — SDLC safety nets (PreToolUse / PostToolUse hooks)
+
+The pack installs hooks that fire automatically on every `Write`,
+`Edit`, and `Bash` so you don't have to remember a slash command:
+
+| Hook | Tool match | Behavior |
+|---|---|---|
+| `secrets-guard` | `Write\|Edit\|Bash` | **BLOCKS** when content contains an AWS key, GitHub/Anthropic/OpenAI/Stripe/Slack/Google token, RSA private key, JWT, or a generic `*_KEY="..."` literal. Allowlist: `.env.example`, `fixtures/secrets/`, etc. Placeholders like `${VAR}` and `os.environ["X"]` pass through. |
+| `scope-guard` | `Write\|Edit` | WARNS when an edit falls outside the scope declared via `/scope`. Nudge, not block — pauses for confirmation. |
+| `test-first-enforcer` | `Write\|Edit` | WARNS when editing a source file with no test edited yet this session. Bypass via `[refactor]` / `no-test-needed` in content or `CLAUDE_SKIP_TEST_FIRST=1`. |
+| `blast-radius` | `Write\|Edit` | WARNS when editing a file imported in 20+ places (configurable). Surfaces a count + sample so the user can calibrate caution. |
+| `edit-recorder` | `Write\|Edit` (PostToolUse) | Read-only state recorder feeding the other nudge hooks. |
+
+### Goal 5 — Slash commands for the SDLC
+
+Beyond `/persona-roundtable`, `/llm-audit`, `/EOD_Summary`:
+
+| Command | Purpose |
+|---|---|
+| `/scope <items>` | Declare session scope (paths, dirs, globs); used by `scope-guard`. |
+| `/spec <feature>` | Produce a structured spec (problem, non-goals, acceptance, test plan, rollback) before code. Writes to `.agents/artifacts/specs/`. |
+| `/repro <bug>` | Build a minimal failing test BEFORE attempting any fix. Refuses to fix until red exists. |
+| `/adr <title>` | Record an immutable, numbered Architecture Decision (`docs/adr/NNNN-...`). |
+| `/pr-preflight [--strict]` | Run lint + types + tests + secrets-on-diff + commit-style + line-budget; verdict before push. |
+| `/handoff [topic]` | Forward-looking "next session starts here" doc with the exact next command to run. |
+| `/retro` | Session retrospective with proposed CLAUDE.md edits (opt-in). |
+
 ## Pure-vanilla compatibility
 
 Neither pack references any of these:
@@ -70,27 +100,39 @@ templates** — no external dependencies.
 ## Verification log (run at build time)
 
 ```
-linux-macos/install.sh                              : bash -n OK
-linux-macos/.claude/hooks/_lib.sh                   : bash -n OK
-linux-macos/.claude/hooks/ensure-checkpoint-files.sh: bash -n OK
-linux-macos/.claude/hooks/append-checkpoint.sh      : bash -n OK
-linux-macos/.claude/settings.json                   : JSON valid
-linux-macos resolution scenarios (5/5 PASS):
+== Linux/macOS ==
+- All bash scripts: bash -n OK
+- All settings.json: JSON valid
+- Checkpoint resolution scenarios (5/5 PASS):
   - no files anywhere       -> create at root
   - only docs/ has files    -> adopt docs/ path
   - root + docs/ both       -> ambiguous-root, root wins, warn
   - docs/ + notes/2026/     -> ambiguous-fallback, shortest wins, warn
   - decoys in pruned dirs   -> pruned, treated as no-match
+- secrets-guard scenarios (12/12 PASS):
+  - clean code, AWS key (deny), .env.example allowlist,
+    placeholder, Anthropic-in-Bash (deny), JWT in fixtures,
+    GitHub token in Edit (deny), generic password (deny),
+    password via getenv, RSA key block (deny), prose,
+    Read tool (no scan)
+- nudge-hook scenarios (9/9 PASS):
+  - scope-guard no-op without scope
+  - scope-guard warns on out-of-scope edit
+  - scope-guard silent on in-scope edit
+  - test-first warns when no test changed
+  - test-first bypassed by [refactor] marker
+  - test-first silent when editing the test itself
+  - test-first silent after a test edit was recorded
+  - blast-radius warns on heavily-imported file (25 importers)
+  - blast-radius silent on uncited file
 
-windows/install.ps1                              : PSParser OK
-windows/.claude/hooks/_lib.ps1                   : PSParser OK
-windows/.claude/hooks/ensure-checkpoint-files.ps1: PSParser OK
-windows/.claude/hooks/append-checkpoint.ps1      : PSParser OK
-windows/.claude/settings.json                    : JSON valid
-windows resolution scenarios (5/5 PASS):
-  - same five scenarios pass on Windows PowerShell 5.1
-  - 8.3 short-name path canonicalization fixed (Get-Item, not Resolve-Path)
-  - additionalContext JSON output is clean UTF-8
+== Windows ==
+- All .ps1 scripts: PSParser OK
+- All settings.json: JSON valid
+- Same five checkpoint resolution scenarios PASS on PS 5.1
+- secrets-guard 7/7 sampled scenarios PASS on PS 5.1
+- 8.3 short-name path canonicalization (Get-Item not Resolve-Path)
+- additionalContext stdout forced to UTF-8
 ```
 
 ## Bugs caught and fixed during build-time testing
@@ -108,3 +150,17 @@ windows resolution scenarios (5/5 PASS):
    characters in `additionalContext` JSON. Fixed by forcing UTF-8
    on `[Console]::OutputEncoding` and `$OutputEncoding` at the top
    of every hook.
+4. **Secrets guard** — `python - <<'PYEOF'` consumed stdin entirely,
+   making `sys.stdin.read()` always empty so every payload silently
+   passed. Fixed by extracting the scanner into a sibling Python
+   file (`_secrets_scan.py`) the bash wrapper invokes via
+   `python <script>` while still piping the payload through stdin.
+5. **Secrets guard** — placeholder regex included `\bEXAMPLE\b` and
+   `\bREDACTED\b`, which false-suppressed real key matches when a
+   line legitimately contained `api.example.com`. Removed those two
+   tokens; kept the structural placeholders (`${VAR}`,
+   `process.env.X`, `os.environ["X"]`, `<YOUR_KEY>`).
+6. **Secrets guard** — generic password pattern used `\bpassword\b`,
+   but `\b` doesn't fire between underscore and letter, so
+   `DB_PASSWORD = "..."` slipped past. Anchored on
+   `(?:^|[^A-Za-z0-9])` instead.

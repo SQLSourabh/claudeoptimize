@@ -65,14 +65,44 @@ messages, or chat — Claude must:
 
 ## 3. Multi-persona reviews
 
-- Use `/persona-roundtable <scope>` to get CEO / CFO / CTO / PM /
-  Staff Eng / Security / Domain / QA review of a change.
+- Use `/persona-roundtable <scope>` to get a multi-perspective review
+  of a change. Personas: CEO, CFO, CTO, PM, Staff Software Engineer,
+  Independent Code Reviewer (general-purpose), Security Engineer
+  (general-purpose), QA, ML/AI LLM Researcher, DevOps/SRE, Data
+  Engineer, UX/Copy, Compliance/Privacy, API Steward.
+- The orchestrator selects only personas relevant to the scope (e.g.,
+  skip Data Engineer if no DB / ETL involvement; skip API Steward if
+  no public surface change).
 - All personas operate from the same `facts.md` evidence packet
   produced by the orchestrator. Personas may NOT invent facts; they
   may only reason from the packet or from files they read directly.
 - Cross-examination is mandatory: each persona's "QUESTIONS FOR OTHER
   PERSONAS" must be sent to the addressed persona and answered before
   synthesis.
+
+## 3.5 Hooks active in every session
+
+The pack installs PreToolUse / PostToolUse hooks that run on every
+Write/Edit/Bash. They will surface or block as follows:
+
+- **secrets-guard** (PreToolUse on Write|Edit|Bash, BLOCKS on match) —
+  scans for credential patterns (AWS, GitHub, Anthropic, OpenAI,
+  Stripe, Slack, Google, RSA keys, JWTs, generic secret-name
+  assignments). Allowlist: `.env.example`, `fixtures/secrets/`, etc.
+- **scope-guard** (PreToolUse on Write|Edit, WARNS) — when the user
+  has declared a scope via `/scope`, warns if a write lands outside.
+- **test-first-enforcer** (PreToolUse on Write|Edit, WARNS) — when
+  editing a source file with no test edited yet this session, prompts
+  for the failing test or a `[refactor]` / `no-test-needed` marker.
+- **blast-radius** (PreToolUse on Write|Edit, WARNS) — when editing
+  a file imported by 20+ call sites (default threshold), surfaces a
+  count + sample so the user can calibrate caution.
+- **edit-recorder** (PostToolUse on Write|Edit, READ-ONLY) — populates
+  per-session state the other hooks read.
+
+To bypass a warning, address it in your next message or set
+`CLAUDE_SKIP_TEST_FIRST=1` (test-first), use the in-content marker
+`[refactor]` / `no-test-needed`, or update `/scope` to expand scope.
 
 ## 4. Subagent dispatch defaults
 

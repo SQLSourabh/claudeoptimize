@@ -11,6 +11,45 @@
         ]
       }
     ],
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -ExecutionPolicy Bypass -NoProfile -File .claude/hooks/secrets-guard.ps1"
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -ExecutionPolicy Bypass -NoProfile -File .claude/hooks/scope-guard.ps1"
+          },
+          {
+            "type": "command",
+            "command": "powershell -ExecutionPolicy Bypass -NoProfile -File .claude/hooks/test-first-enforcer.ps1"
+          },
+          {
+            "type": "command",
+            "command": "powershell -ExecutionPolicy Bypass -NoProfile -File .claude/hooks/blast-radius.ps1"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -ExecutionPolicy Bypass -NoProfile -File .claude/hooks/edit-recorder.ps1"
+          }
+        ]
+      }
+    ],
     "PreCompact": [
       {
         "matcher": "*",

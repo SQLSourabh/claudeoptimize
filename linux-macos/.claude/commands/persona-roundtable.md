@@ -42,6 +42,11 @@ yourself. No speculation."*
 | Security Engineer | general-purpose | Authn/z, injection, data exposure, secrets — see prompt template below |
 | QA Lead | qa-persona | Test coverage, edge cases, regression risk |
 | ML/AI LLM Researcher | llm-researcher-persona | Output forensics, prompt bias surface, eval-loop design (use whenever scope involves an LLM prompt, agent, or model output) |
+| DevOps / SRE | devops-sre-persona | Deploy story, rollback, observability, on-call burden (use whenever scope touches infra, deploy, or release-impacting code) |
+| Data Engineer | data-engineer-persona | Schema migrations, idempotency, lineage, replay, data quality (use whenever scope touches DB / ETL / events / pipelines) |
+| UX / Copy | ux-copy-persona | Error messages, naming consistency, empty states, microcopy, code-observable a11y (use whenever scope touches user-facing surface) |
+| Compliance / Privacy | compliance-privacy-persona | Data classification, retention, consent, audit trail, cross-border flows (use whenever scope touches user data) |
+| API Steward | api-steward-persona | Versioning, deprecations, backward compatibility, contract stability (use whenever scope touches a public API, library export, CLI flag, config key, or event schema) |
 
 ### Prompt template — Independent Code Reviewer (general-purpose)
 

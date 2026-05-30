@@ -11,6 +11,45 @@
         ]
       }
     ],
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/secrets-guard.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/scope-guard.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/test-first-enforcer.sh"
+          },
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/blast-radius.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/edit-recorder.sh"
+          }
+        ]
+      }
+    ],
     "PreCompact": [
       {
         "matcher": "*",
