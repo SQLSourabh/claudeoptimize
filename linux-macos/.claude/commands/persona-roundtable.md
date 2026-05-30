@@ -1,6 +1,6 @@
 ---
 description: Run a multi-persona roundtable review of the current codebase or change
-argument-hint: "<topic|path|gitref> [--exclude N,M,...] [--only N,M,...]"
+argument-hint: "<topic|path|gitref> [--brief] [--exclude N,M,...] [--only N,M,...]"
 allowed-tools: Agent, Read, Grep, Glob, Bash(git:*)
 ---
 
@@ -10,8 +10,14 @@ Run a structured, evidence-grounded roundtable on: **$ARGUMENTS**
 
 The arguments string contains:
 
-- The **topic / path / git-ref** (everything before any `--exclude`
-  or `--only` flag).
+- The **topic** — one of:
+  - a free-text question (`"Should we migrate to Postgres?"`)
+  - a path or glob (`src/auth/`, `*.py`)
+  - a git ref (`HEAD~5..HEAD`, `origin/main..HEAD`)
+  - a path to a **brief file** (a `.md` describing what to evaluate
+    — see "Brief mode" below)
+- Optional **`--brief`** to force brief-mode interpretation of a
+  `.md` topic path.
 - Optional **`--exclude <ordinals-or-names>`** to remove personas
   from the spawn set.
 - Optional **`--only <ordinals-or-names>`** to spawn ONLY the listed
@@ -19,6 +25,80 @@ The arguments string contains:
 
 `--exclude` and `--only` are **mutually exclusive**. If both are
 present, error out and ask the user to pick one.
+
+## Brief mode
+
+A **brief** is a markdown file that describes the evaluation —
+question, context, files of interest, specific concerns. It is
+NOT the artifact under review; the personas do not review the
+brief file itself. They read it as instructions and then apply
+their lenses to whatever the brief points at (code, an idea, a
+proposal, a vendor evaluation, etc.).
+
+### When brief mode triggers
+
+In priority order:
+
+1. The user passed `--brief` explicitly.
+2. The topic resolves to a `.md` file whose first H1 starts with
+   `# Roundtable brief:` (case-insensitive). Auto-detected.
+
+If neither condition holds and the topic is a `.md` path, the
+orchestrator falls back to current behavior (treat as artifact
+to review). When in doubt, ask the user — don't assume.
+
+### Brief file schema
+
+A well-formed brief looks like this:
+
+```markdown
+# Roundtable brief: <one-sentence question>
+
+## Question
+<free-form prose stating exactly what you want evaluated. The
+personas read this and treat it as their charge.>
+
+## Context
+- Background bullet
+- Background bullet
+- Files of interest: <paths or globs — orchestrator reads them>
+- Related artifacts: <ADR paths, prior PRs, proposal docs>
+
+## Specific concerns
+- <topic 1>
+- <topic 2>
+- ...
+
+## Out of scope
+- <thing the personas should NOT spend cycles on>
+
+## Suggested ordinals (advisory)
+<comma-separated list — informational only. Persona selection is
+controlled by --only / --exclude on the command line. The
+orchestrator surfaces this list to the user as a hint but does
+NOT auto-apply it.>
+```
+
+Every section is optional except `## Question`. If `## Question`
+is missing, abort and tell the user the brief is malformed.
+
+### What the orchestrator does in brief mode
+
+1. Reads the brief in full.
+2. Uses `## Question` as the topic statement passed to every
+   persona (in addition to facts.md).
+3. Reads every path / glob in `## Context.Files of interest` and
+   includes excerpts in facts.md.
+4. Reads every ADR / proposal / artifact in `## Context.Related
+   artifacts` and cites them in facts.md.
+5. Surfaces `## Specific concerns` to the personas as priority
+   focus areas.
+6. Honors `## Out of scope` by adding it as a hard rule to each
+   persona's prompt: "do not spend cycles on these topics".
+7. If `## Suggested ordinals` is present AND the user provided
+   neither `--only` nor `--exclude`, prints a one-line hint:
+   `Brief suggests ordinals [3, 4, 11, 12]. Apply via --only or
+   ignore. Spawning full set.` Does NOT auto-apply.
 
 ## Persona ordinal list (canonical)
 
@@ -110,10 +190,14 @@ Before Phase 2 dispatch, print this block to chat:
 ```
 Roundtable spawn plan
 - topic: <resolved topic>
+- topic kind: brief | gitref | path | freetext
+- brief path: <path>            (only if kind=brief)
+- brief charge: <one-line excerpt of the brief's ## Question>
 - selection mode: full | only | exclude
 - requested: <ordinals as listed by user, normalized>
 - after relevance gate: <final ordinals + names>
 - skipped (explain): <ordinal — reason>
+- brief-suggested ordinals: <list>   (informational only)
 ```
 
 If the final set is empty, abort and tell the user — don't spawn an
@@ -125,17 +209,57 @@ Before spawning any persona, gather the ground truth they will all
 review. No persona is allowed to invent facts; they all read from
 the same evidence packet.
 
-1. Strip `--exclude` / `--only` from `$ARGUMENTS` to get the topic.
-2. If the topic looks like a path or glob, `Read` / `Grep` it.
-3. If it looks like a git ref, run `git diff <ref>` and
-   `git log <ref>`.
-4. Otherwise, do a focused codebase survey relevant to the topic.
-5. Write the evidence packet to
-   `.agents/artifacts/roundtable-<timestamp>/facts.md` with:
-   - Files in scope (paths + line counts)
-   - Key code excerpts (with `file:line` citations)
-   - Build / test status (commands run, exit codes)
-   - Known constraints from `CLAUDE.md`
+### 1.1 Resolve topic kind
+
+Strip `--brief`, `--exclude`, `--only` from `$ARGUMENTS` to get the
+remaining topic string, then classify it:
+
+| Kind | Detection | Example |
+|---|---|---|
+| **brief** | `--brief` flag present, OR topic is a `.md` whose first H1 starts with `# Roundtable brief:` | `proposals/postgres-migration.md` |
+| **gitref** | matches `^[A-Za-z0-9._/~^-]+\.\.[A-Za-z0-9._/~^-]+$` or starts with `HEAD`, `origin/`, `pull/` | `HEAD~5..HEAD` |
+| **path** | exists on disk OR contains a `/` or wildcard | `src/auth/`, `*.py` |
+| **freetext** | none of the above | `"Should we adopt pgvector?"` |
+
+If the topic is `.md` AND `--brief` is not given AND the H1 doesn't
+match the brief signature, ask the user explicitly:
+
+```
+Topic is a .md file. Two interpretations:
+  1. Treat as an artifact to review (current behavior).
+  2. Treat as a brief — instructions for what to evaluate.
+Pass --brief to choose option 2, or confirm option 1.
+```
+
+Do not guess.
+
+### 1.2 Build facts.md per kind
+
+Write `.agents/artifacts/roundtable-<timestamp>/facts.md` with the
+evidence packet. Always include:
+
+- Files in scope (paths + line counts)
+- Key code excerpts (with `file:line` citations)
+- Build / test status (commands run, exit codes)
+- Known constraints from `CLAUDE.md`
+
+Per kind, also include:
+
+- **brief:** Read the brief in full and copy:
+  - `## Question` verbatim into facts.md as `## Charge from brief`
+  - `## Context.Files of interest` paths — read each, include
+    excerpts (cited)
+  - `## Context.Related artifacts` paths — read each, summarize
+    each in 2-4 sentences (cited)
+  - `## Specific concerns` verbatim as `## Priority focus areas`
+  - `## Out of scope` verbatim as `## Out-of-scope (do not address)`
+  - `## Suggested ordinals` as a metadata note only
+- **gitref:** Run `git diff <ref>` and `git log <ref>`; include
+  diff stat and the commit messages.
+- **path:** `Read` the file or `Grep`/`Glob` the pattern; include
+  excerpts.
+- **freetext:** Do a focused codebase survey relevant to the
+  free-text question.
 
 ## Phase 2 — Dispatch personas in parallel
 
@@ -260,3 +384,52 @@ You (the orchestrator) write the final report to
 - The Spawn manifest is mandatory in every report — there is no
   scenario where the user shouldn't be able to audit who reviewed
   the change.
+
+## Appendix — Brief template
+
+Copy this into a file (e.g., `proposals/<topic>.md`), fill it in,
+then run `/persona-roundtable proposals/<topic>.md`.
+
+```markdown
+# Roundtable brief: Should we migrate from MySQL to Postgres?
+
+## Question
+Evaluate whether migrating our primary OLTP database from MySQL 8
+to Postgres 16 is worth the cost and risk over the next two
+quarters. Decision needed by end of Q3.
+
+## Context
+- We currently run MySQL 8 on RDS (cited from infra/rds.tf:14).
+- Volume: ~2TB, 4k QPS p99, 99.95% SLO.
+- Felt-pain motivators:
+  - JSON column performance issues (citing
+    docs/perf/2026-Q1-review.md§"JSON queries").
+  - Missing PG-specific features (CTEs, generate_series).
+- Files of interest:
+  - infra/rds.tf
+  - schema/migrations/
+  - docs/perf/2026-Q1-review.md
+- Related artifacts:
+  - docs/adr/0008-chose-mysql.md (the decision being revisited)
+  - PRs #1247, #1389 (recent JSON-related workarounds)
+
+## Specific concerns
+- Operational complexity during the transition (read-replica swap,
+  cutover, rollback path).
+- Vendor / RDS pricing delta.
+- Application-layer changes required (ORM, raw SQL).
+- Team expertise — who's run Postgres in production at this scale?
+
+## Out of scope
+- NoSQL / NewSQL alternatives (this is MySQL→Postgres only).
+- Multi-region; that's tracked separately in ADR 0021.
+
+## Suggested ordinals (advisory)
+2, 3, 4, 11, 12, 14
+(CFO, CTO, Architect, DevOps, Data Engineer, Compliance)
+```
+
+The personas will treat the brief's `## Question` as their charge
+and apply each lens to the surrounding context. The brief itself
+is NOT what they review — they review the actual subject the brief
+points at.

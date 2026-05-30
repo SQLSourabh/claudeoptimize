@@ -853,11 +853,141 @@ cross-examination, then synthesis.
 **Syntax:**
 
 ```
-/persona-roundtable <topic|path|gitref> [--exclude N,M,...] [--only N,M,...]
+/persona-roundtable <topic|path|gitref|brief.md> [--brief] [--exclude N,M,...] [--only N,M,...]
 ```
 
 `--exclude` and `--only` are mutually exclusive. Default
 (no flag) = full set, then relevance-gated.
+
+### Topic kinds
+
+The orchestrator classifies the topic before doing anything else:
+
+| Kind | Detection | Example |
+|---|---|---|
+| **brief** | `--brief` flag, or `.md` file whose H1 starts with `# Roundtable brief:` | `proposals/postgres-migration.md` |
+| **gitref** | matches `A..B`, or starts with `HEAD`, `origin/`, `pull/` | `HEAD~5..HEAD` |
+| **path** | exists on disk OR contains `/` or `*` | `src/auth/`, `*.py` |
+| **freetext** | none of the above | `"Should we adopt pgvector?"` |
+
+If the topic is a `.md` path AND `--brief` is not given AND the H1
+doesn't match the brief signature, the orchestrator asks
+explicitly which interpretation you want — it will not guess.
+
+### Brief mode (the .md-as-instructions case)
+
+A **brief** is a markdown file describing what to evaluate. The
+personas read the brief as instructions and then apply their
+lenses to the actual subject the brief points at — they do **not**
+review the brief file itself.
+
+Use this when the question is too rich for one chat line:
+- Multi-paragraph context
+- Several files to consider together
+- Specific concerns worth pinning
+- An out-of-scope list to preempt persona drift
+
+#### Minimal brief
+
+```markdown
+# Roundtable brief: Should we migrate from MySQL to Postgres?
+
+## Question
+Evaluate whether migrating our primary OLTP DB from MySQL 8 to
+Postgres 16 is worth the cost and risk over the next two
+quarters. Decision needed by end of Q3.
+
+## Context
+- We currently run MySQL 8 on RDS (cited from infra/rds.tf:14).
+- Volume: ~2TB, 4k QPS p99, 99.95% SLO.
+- Files of interest:
+  - infra/rds.tf
+  - schema/migrations/
+  - docs/perf/2026-Q1-review.md
+- Related artifacts:
+  - docs/adr/0008-chose-mysql.md (the decision being revisited)
+
+## Specific concerns
+- Operational complexity during the transition.
+- Vendor / RDS pricing delta.
+- Application-layer changes required (ORM, raw SQL).
+
+## Out of scope
+- NoSQL / NewSQL alternatives — this is MySQL→Postgres only.
+
+## Suggested ordinals (advisory)
+2, 3, 4, 11, 12
+(CFO, CTO, Architect, DevOps, Data Engineer)
+```
+
+#### Run it
+
+> /persona-roundtable proposals/postgres-migration.md
+
+The H1 starts with `# Roundtable brief:`, so brief mode triggers
+automatically. No flag needed.
+
+The orchestrator:
+
+1. Reads the brief in full.
+2. Pulls the `## Question` into facts.md as the personas' charge.
+3. Reads every path under `Files of interest` and `Related
+   artifacts`, including excerpts in facts.md.
+4. Surfaces `## Specific concerns` to each persona as priority
+   focus areas.
+5. Honors `## Out of scope` by adding it as a hard rule per
+   persona prompt.
+6. If `## Suggested ordinals` is present, prints a hint:
+   ```
+   Brief suggests ordinals [2, 3, 4, 11, 12]. Apply via --only
+   or ignore. Spawning full set.
+   ```
+   Does NOT auto-apply. You'd run with `--only 2,3,4,11,12` if
+   you want to honor the suggestion.
+
+#### Combine with --only / --exclude
+
+> /persona-roundtable proposals/postgres-migration.md --only 2,3,4,11,12
+
+Forces only the brief's suggested ordinals.
+
+> /persona-roundtable proposals/postgres-migration.md --exclude 1
+
+Full set minus CEO.
+
+#### Schema
+
+| Section | Required | Purpose |
+|---|---|---|
+| `# Roundtable brief: ...` (H1) | Yes (auto-detect signal) | Triggers brief mode automatically |
+| `## Question` | **Yes** | The personas' charge — what to evaluate |
+| `## Context` | No | Background + `Files of interest:` + `Related artifacts:` |
+| `## Specific concerns` | No | Priority focus areas |
+| `## Out of scope` | No | Hard rule: personas won't address these |
+| `## Suggested ordinals` | No | Informational hint shown to user |
+
+If `## Question` is missing, the orchestrator aborts and asks
+you to fix the brief.
+
+#### When the topic is `.md` but isn't a brief
+
+If you point at a `.md` that doesn't have the `# Roundtable
+brief:` H1 (e.g., a README, a design doc you want personas to
+critique as a doc), don't pass `--brief`:
+
+> /persona-roundtable docs/api-design.md
+
+The personas review the doc itself — its prose, structure,
+accuracy, completeness. This is the original behavior.
+
+If the orchestrator can't tell, it asks:
+
+```
+Topic is a .md file. Two interpretations:
+  1. Treat as an artifact to review (current behavior).
+  2. Treat as a brief — instructions for what to evaluate.
+Pass --brief to choose option 2, or confirm option 1.
+```
 
 ### Persona ordinal list
 
