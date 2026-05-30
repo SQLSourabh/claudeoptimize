@@ -1,22 +1,35 @@
 # Claude Code Optimization Pack — Windows
 
-Drop-in scaffolding that wires three behaviors into any Claude Code
+Drop-in scaffolding that wires four behaviors into any Claude Code
 project on Windows:
 
-1. **Auto-managed `Checkpoint.md` + `EOD_Summary.md`** (append-only).
-2. **Multi-persona roundtable reviews** (CEO/CFO/CTO/PM/Staff Eng/QA/
-   Security/Independent Reviewer/LLM Researcher).
-3. **Evidence-first, no-hand-waving operating rules.**
+1. **Auto-managed `Checkpoint.md` + `EOD_Summary.md`** (append-only,
+   tree-walking file resolver).
+2. **Multi-persona roundtable reviews** — up to 15 personas in
+   parallel with `--exclude` / `--only` ordinal selection and
+   brief-mode (`.md` as instructions).
+3. **SDLC safety nets** — PreToolUse / PostToolUse hooks that block
+   credential leaks, nudge TDD discipline, flag scope creep, and
+   warn on widely-imported edits.
+4. **Evidence-first, no-hand-waving operating rules.**
 
 This pack uses **only built-in Claude Code primitives** — no
 plugins, no MCP servers, no organization-specific subagents.
+
+> For end-to-end usage examples of every command and hook, see
+> [USAGE.md](../USAGE.md) at the top level of the pack.
 
 ## Requirements
 
 - Claude Code CLI installed.
 - Windows PowerShell 5.1 or newer (ships with every modern Windows).
   Hooks invoke `powershell` (Windows PowerShell), not `pwsh`.
-- No Python required. All hook logic is native PowerShell.
+- **`python` on PATH** — required for the SDLC scanner hooks
+  (secrets-guard, scope-guard, test-first, blast-radius). The
+  scanner logic is shared cross-platform, written once in Python,
+  and invoked by the PowerShell wrappers. Without `python` the
+  SDLC hooks become inactive (the wrappers detect this and exit
+  silently); the checkpoint hooks still work.
 
 ## Install
 
@@ -32,6 +45,10 @@ already exist, it backs them up and writes companion files
 (`CLAUDE.optimization.md`, `settings.pack.json`, `settings.json.bak`)
 for manual merge.
 
+The installer **glob-copies all `*.ps1` and `*.py`** from the source
+`hooks\` directory — adding new hooks to the source pack does not
+require editing the installer.
+
 ## Pack contents
 
 ```
@@ -39,43 +56,87 @@ for manual merge.
 ├── install.ps1                             # idempotent installer
 ├── CLAUDE.md                               # evidence-first project rules
 └── .claude\
-    ├── settings.json                       # hooks: SessionStart, PreCompact, Stop
-    ├── hooks\
-    │   ├── _lib.ps1                        # shared resolver (file location lookup)
-    │   ├── ensure-checkpoint-files.ps1     # creates the two files if missing
-    │   └── append-checkpoint.ps1           # appends structured stub
-    ├── commands\
+    ├── settings.json                       # hooks: SessionStart, PreToolUse,
+    │                                       #        PostToolUse, PreCompact, Stop
+    ├── hooks\                              # 8 PowerShell wrappers + 5 python helpers
+    │   ├── _lib.ps1                        # shared file-location resolver
+    │   ├── _secrets_scan.py                # credential pattern scanner
+    │   ├── _test_first.py                  # test-edit detector
+    │   ├── _scope_guard.py                 # in-scope checker
+    │   ├── _blast_radius.py                # call-site counter
+    │   ├── _session_state.py               # session-state helper
+    │   ├── ensure-checkpoint-files.ps1     # SessionStart
+    │   ├── append-checkpoint.ps1           # PreCompact + Stop
+    │   ├── secrets-guard.ps1               # PreToolUse — BLOCKS on credential
+    │   ├── scope-guard.ps1                 # PreToolUse — WARNS off-scope
+    │   ├── test-first-enforcer.ps1         # PreToolUse — WARNS no test yet
+    │   ├── blast-radius.ps1                # PreToolUse — WARNS widely-imported
+    │   └── edit-recorder.ps1               # PostToolUse — silent state
+    ├── commands\                           # 10 slash commands
     │   ├── EOD_Summary.md                  # /EOD_Summary [date]
-    │   ├── persona-roundtable.md           # /persona-roundtable <scope>
-    │   └── llm-audit.md                    # /llm-audit <prompt-or-transcript>
-    └── agents\
+    │   ├── persona-roundtable.md           # /persona-roundtable [--brief|--exclude|--only]
+    │   ├── llm-audit.md                    # /llm-audit [--tier quick|standard|deep]
+    │   ├── scope.md                        # /scope <items>
+    │   ├── spec.md                         # /spec <feature>
+    │   ├── repro.md                        # /repro <bug>
+    │   ├── adr.md                          # /adr <title>
+    │   ├── pr-preflight.md                 # /pr-preflight [--strict]
+    │   ├── handoff.md                      # /handoff [topic]
+    │   └── retro.md                        # /retro
+    └── agents\                             # 13 persona files
         ├── ceo-persona.md
         ├── cfo-persona.md
-        ├── cto-persona.md
+        ├── cto-persona.md                  # v2 — 412 lines, full rigor
+        ├── architect-persona.md            # v2 — 471 lines, full rigor
         ├── pm-persona.md
         ├── software-engineer-persona.md
         ├── qa-persona.md
-        └── llm-researcher-persona.md
+        ├── llm-researcher-persona.md       # v2 — 602 lines, full rigor
+        ├── devops-sre-persona.md
+        ├── data-engineer-persona.md
+        ├── ux-copy-persona.md
+        ├── compliance-privacy-persona.md
+        └── api-steward-persona.md
 ```
 
 ## How it works
 
-| Trigger | What happens |
+### Hooks (auto-fire)
+
+| Hook | Event | Tool match | Behavior |
+|---|---|---|---|
+| `ensure-checkpoint-files.ps1` | `SessionStart` | * | Resolves `Checkpoint.md` / `EOD_Summary.md` location (tree scan, skips `.git` / `node_modules` / `.venv` / `dist` / `build` / etc.). Adopts existing files; creates at root only when none found. |
+| `secrets-guard.ps1` | `PreToolUse` | `Write\|Edit\|Bash` | **BLOCKS** when content contains AWS / GitHub / Anthropic / OpenAI / Stripe / Slack / Google tokens, RSA private keys, JWTs, or generic secret-name literals. Allowlist for `.env.example` / `fixtures/secrets/`. |
+| `scope-guard.ps1` | `PreToolUse` | `Write\|Edit` | WARNS when an edit lands outside the scope declared via `/scope`. |
+| `test-first-enforcer.ps1` | `PreToolUse` | `Write\|Edit` | WARNS when editing a source file with no test edited yet this session. Bypass via `[refactor]` / `no-test-needed` markers or `CLAUDE_SKIP_TEST_FIRST=1`. |
+| `blast-radius.ps1` | `PreToolUse` | `Write\|Edit` | WARNS when editing a file imported in 20+ places (default threshold; tune via `CLAUDE_BLAST_RADIUS_THRESHOLD`). |
+| `edit-recorder.ps1` | `PostToolUse` | `Write\|Edit` | Silent — records edits in `.claude\state\<session_id>.json` for the other nudge hooks. |
+| `append-checkpoint.ps1` | `PreCompact` + `Stop` | * | Appends a structured stub to `Checkpoint.md` and tells Claude to fill in placeholders before compaction completes. |
+
+### Slash commands
+
+| Command | Purpose |
 |---|---|
-| Session start | `ensure-checkpoint-files.ps1` scans the project tree for existing `Checkpoint.md` / `EOD_Summary.md`. Adopts an existing file if found; creates a new one at project root only when none exists. |
-| Pre-compaction | `append-checkpoint.ps1` re-resolves the location and appends a timestamped stub with structured placeholders. The hook tells Claude (via `additionalContext`) which file was used and to fill in the placeholders before compaction completes. |
-| Session stop | Same hook fires again — guarantees a checkpoint even if the user never compacts. |
-| `/EOD_Summary [date]` | Resolves `Checkpoint.md` / `EOD_Summary.md` via `Glob` (same rules as the hook), reads the day's blocks, appends a rollup section to `EOD_Summary.md`. Never edits prior content. |
-| `/persona-roundtable <scope>` | Builds `facts.md`, dispatches 9 personas in parallel, runs cross-examination via `SendMessage`, writes `report.md`. |
-| `/llm-audit <prompt-or-transcript>` | Runs the LLM Researcher standalone for prompt forensics + bias map + falsifiable improvement plan + continuous-eval loop design. |
+| `/scope <items>` | Declare session scope (paths / dirs / globs). Read by `scope-guard`. |
+| `/spec <feature>` | Produce a structured spec before code (problem, non-goals, acceptance, test plan, rollback). |
+| `/repro <bug>` | Build a minimal failing test BEFORE attempting any fix. |
+| `/adr <title>` | Record an immutable, numbered Architecture Decision (`docs\adr\NNNN-...`). |
+| `/pr-preflight [--strict]` | Run lint + types + tests + secrets-on-diff + commit-style + line-budget; verdict before push. |
+| `/handoff [topic]` | Forward-looking "next session starts here" doc with the exact next command to run. |
+| `/retro` | Session retrospective + opt-in CLAUDE.md edit proposals. |
+| `/EOD_Summary [date]` | Roll up the day's checkpoint blocks into `EOD_Summary.md` (append-only). |
+| `/persona-roundtable <topic\|path\|gitref\|brief.md> [--brief] [--exclude N,M] [--only N,M]` | Multi-perspective review with persona-ordinal selection. |
+| `/llm-audit <prompt-path> [reference-set] [--tier quick\|standard\|deep]` | Standalone LLM forensics + bias map + falsifiable improvement plan + continuous-eval loop. |
 
-### File-location resolution rules
+See [USAGE.md](../USAGE.md) for full examples of each.
 
-The hook searches the project tree, **skipping**: `.git`, `.hg`,
-`.svn`, `node_modules`, `.venv`, `venv`, `env`, `dist`, `build`,
-`out`, `.next`, `.nuxt`, `target`, `__pycache__`, `.pytest_cache`,
-`.mypy_cache`, `.tox`, `.gradle`, `.idea`, `.vscode`, `.claude`,
-`.agents`.
+### Checkpoint file-location resolution
+
+The checkpoint hook searches the project tree, **skipping**: `.git`,
+`.hg`, `.svn`, `node_modules`, `.venv`, `venv`, `env`, `dist`,
+`build`, `out`, `.next`, `.nuxt`, `target`, `__pycache__`,
+`.pytest_cache`, `.mypy_cache`, `.tox`, `.gradle`, `.idea`,
+`.vscode`, `.claude`, `.agents`.
 
 | Matches found | Status surfaced | Action |
 |---|---|---|
@@ -85,7 +146,23 @@ The hook searches the project tree, **skipping**: `.git`, `.hg`,
 | 2+ without root copy | `ambiguous-fallback` | Use shortest path (lex tiebreaker), warn |
 
 The status and a human-readable note are passed to Claude in
-`additionalContext` so the user always knows which file is in play.
+`additionalContext` so the user always knows which file is in
+play.
+
+## Configuration knobs (env vars)
+
+| Env var | Default | Effect |
+|---|---|---|
+| `CLAUDE_PROJECT_DIR` | (set by Claude Code) | Project root used by all hooks. |
+| `CLAUDE_SKIP_TEST_FIRST` | `0` | When `1`, disables `test-first-enforcer` for the session. |
+| `CLAUDE_BLAST_RADIUS_THRESHOLD` | `20` | Call-site count above which `blast-radius` warns. |
+
+Set in PowerShell:
+
+```powershell
+$env:CLAUDE_BLAST_RADIUS_THRESHOLD=10
+claude
+```
 
 ## Notes specific to Windows
 
@@ -104,34 +181,39 @@ The status and a human-readable note are passed to Claude in
   long form, so prefix comparisons used to fail when the user's
   project lived under a path with a short-name segment. `Get-Item`
   expands consistently.
+- The SDLC scanner hooks are written in **Python** (not PowerShell)
+  so the regex / state logic is shared cross-platform. The
+  PowerShell wrappers here only marshal stdin → python →
+  `additionalContext` JSON.
 
-## Verification (already done at build time)
+## Verification (build-time)
 
-- All `.ps1` scripts pass `[System.Management.Automation.PSParser]::Tokenize()`.
-- `settings.json` parses as valid JSON.
-- End-to-end smoke tests on Windows PowerShell 5.1 across **five
-  resolution scenarios**:
-  - No files anywhere → `create` at root.
-  - Only `docs\Checkpoint.md` exists → `adopt` that path.
-  - Root + `docs\` both have files → `ambiguous-root`, root wins,
-    warning surfaced.
-  - `docs\` + `notes\2026\` both have files (no root copy) →
-    `ambiguous-fallback`, shortest path wins, warning surfaced.
-  - Decoys in `.git`, `node_modules`, `dist` → pruned, treated as
-    "no file found".
-- All five scenarios produce correctly-formatted Checkpoint.md stubs
-  and clean UTF-8 `additionalContext` JSON output.
+- All `*.ps1` scripts pass `[System.Management.Automation.PSParser]::Tokenize()`.
+- All `*.py` helpers parse-clean.
+- `settings.json`: valid JSON.
+- Installer smoke test: copies all 13 hook files (8 PowerShell + 5
+  python), creates target directory tree.
+- Checkpoint resolution: 5/5 scenarios pass on Windows PowerShell 5.1
+  (8.3 short-name path canonicalization + UTF-8 stdout fixes verified).
+- secrets-guard: 7/7 sampled scenarios pass on Windows PowerShell 5.1
+  (clean code, AWS / Anthropic / GitHub / Stripe / RSA / JWT
+  detection, allowlist paths, placeholders, generic password literals).
 
 ## Uninstall
 
 ```powershell
+Remove-Item .claude\hooks\_*.ps1
+Remove-Item .claude\hooks\_*.py
 Remove-Item .claude\hooks\ensure-checkpoint-files.ps1
 Remove-Item .claude\hooks\append-checkpoint.ps1
-Remove-Item .claude\commands\EOD_Summary.md
-Remove-Item .claude\commands\persona-roundtable.md
-Remove-Item .claude\commands\llm-audit.md
+Remove-Item .claude\hooks\secrets-guard.ps1
+Remove-Item .claude\hooks\scope-guard.ps1
+Remove-Item .claude\hooks\test-first-enforcer.ps1
+Remove-Item .claude\hooks\blast-radius.ps1
+Remove-Item .claude\hooks\edit-recorder.ps1
+Get-ChildItem .claude\commands\*.md | Remove-Item
 Get-ChildItem .claude\agents\*-persona.md | Remove-Item
-# Remove the three hook entries from .claude\settings.json by hand,
+# Remove the hook entries from .claude\settings.json by hand,
 # or restore from .bak if the installer made one.
 # Checkpoint.md and EOD_Summary.md persist unless you delete them.
 ```

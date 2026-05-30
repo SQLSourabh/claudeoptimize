@@ -27,11 +27,26 @@ echo ""
 # 1. .claude/ directory tree
 mkdir -p "$TARGET/.claude/hooks" "$TARGET/.claude/commands" "$TARGET/.claude/agents"
 
-# 2. Copy hooks (always overwrite — these are versioned)
-cp "$SRC/.claude/hooks/_lib.sh" "$TARGET/.claude/hooks/"
-cp "$SRC/.claude/hooks/ensure-checkpoint-files.sh" "$TARGET/.claude/hooks/"
-cp "$SRC/.claude/hooks/append-checkpoint.sh" "$TARGET/.claude/hooks/"
+# 2. Copy hooks (always overwrite — these are versioned).
+#    Glob-copy *.sh + *.py so adding new hooks in the source pack
+#    doesn't require updating this installer. Helper python scripts
+#    (_secrets_scan.py, _session_state.py, etc.) are platform-
+#    agnostic and ship to both Linux/macOS and Windows trees.
+shopt -s nullglob
+HOOK_FILES=( "$SRC/.claude/hooks/"*.sh "$SRC/.claude/hooks/"*.py )
+shopt -u nullglob
+if [[ ${#HOOK_FILES[@]} -eq 0 ]]; then
+  echo "ERROR: no hook files found at $SRC/.claude/hooks/" >&2
+  exit 1
+fi
+for f in "${HOOK_FILES[@]}"; do
+  cp "$f" "$TARGET/.claude/hooks/"
+done
 chmod +x "$TARGET/.claude/hooks/"*.sh
+# Python helpers don't need +x (they're invoked via `python <script>`),
+# but +x is harmless and useful when users run them directly.
+chmod +x "$TARGET/.claude/hooks/"*.py 2>/dev/null || true
+echo "Copied ${#HOOK_FILES[@]} hook files."
 
 # 3. Copy commands (always overwrite)
 cp "$SRC/.claude/commands/"*.md "$TARGET/.claude/commands/"

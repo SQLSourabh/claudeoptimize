@@ -36,9 +36,20 @@ $null = New-Item -ItemType Directory -Force -Path $commandsDir
 $null = New-Item -ItemType Directory -Force -Path $agentsDir
 
 # 2. Hooks (always overwrite — versioned by us).
-Copy-Item -Force -Path (Join-Path $src '.claude\hooks\_lib.ps1') -Destination $hooksDir
-Copy-Item -Force -Path (Join-Path $src '.claude\hooks\ensure-checkpoint-files.ps1') -Destination $hooksDir
-Copy-Item -Force -Path (Join-Path $src '.claude\hooks\append-checkpoint.ps1') -Destination $hooksDir
+#    Glob-copy *.ps1 + *.py so adding new hooks doesn't require
+#    updating this installer. Python helpers are platform-agnostic
+#    and ship to both Linux/macOS and Windows trees.
+$srcHooks  = Join-Path $src '.claude\hooks'
+$hookFiles = @(Get-ChildItem -Path $srcHooks -File |
+               Where-Object { $_.Extension -in '.ps1', '.py' })
+if ($hookFiles.Count -eq 0) {
+    Write-Error "No hook files found at $srcHooks"
+    exit 1
+}
+foreach ($f in $hookFiles) {
+    Copy-Item -Force -Path $f.FullName -Destination $hooksDir
+}
+Write-Host "Copied $($hookFiles.Count) hook files."
 
 # 3. Commands (always overwrite).
 Get-ChildItem -Path (Join-Path $src '.claude\commands') -Filter '*.md' | ForEach-Object {
