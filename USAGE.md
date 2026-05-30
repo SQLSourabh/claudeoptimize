@@ -1404,21 +1404,36 @@ You typically use these inside `/persona-roundtable`, but each
 persona file can also be invoked directly via the `Agent` tool if
 you need a single lens.
 
-| Persona | Main question they answer |
-|---|---|
-| **ceo-persona** | Does this advance our strategy? What's the opportunity cost? |
-| **cfo-persona** | What does this cost (compute, vendor, headcount)? Lock-in? |
-| **cto-persona** | Is the architecture scalable, observable, and not piling on tech debt? |
-| **architect-persona** | Is this *shaped* correctly — boundaries, patterns, build-vs-buy, cross-cutting drift? |
-| **pm-persona** | Is the scope clear? What are the dependencies and risks? |
-| **software-engineer-persona** | Is the code correct, consistent with the codebase, well-tested? |
-| **qa-persona** | What edges are untested? What's the regression blast radius? |
-| **llm-researcher-persona** | If an LLM is in the loop: forensics, bias, eval-loop design. |
-| **devops-sre-persona** | How does this deploy? Roll back? Page someone? |
-| **data-engineer-persona** | Is the schema migration safe? Idempotency? Lineage? |
-| **ux-copy-persona** | Are the strings, errors, empty states, microcopy good? Code-observable a11y? |
-| **compliance-privacy-persona** | What's the data classification? Retention? Consent? |
-| **api-steward-persona** | Does this break consumers? Versioning? Deprecation path? |
+**Seven personas have been rewritten to v2 rigor** (≥400 lines
+each, audit-cost tier with `quick`/`standard`/`deep`, evidence-
+regime constraints, codified boundary table mapping every
+concern to its owner persona, `NEEDS-HUMAN-INPUT` label for
+items that aren't inventable, alternative-hypotheses requirement,
+expanded banned-phrases lists, multi-item self-checks that
+reject reports failing the constraints).
+
+| Persona | Status | Main question they answer |
+|---|---|---|
+| **ceo-persona** | v2 (428 lines) | Should the company be doing this at all? Existential-risk class? Which strategic bet does this advance and what gets starved? External signal to customers / competitors / talent / investors? |
+| **cfo-persona** | v2 (523 lines) | Total cost of ownership across full lifecycle (direct + implementation + operating + switching + hidden, amortized 1y/3y/5y)? Unit economics + break-even? Lock-in quantified in person-hours and concentration percentage? Vendor consolidation? Regulatory financial exposure? |
+| **cto-persona** | v2 (412 lines) | Production-readiness over time + tech-debt economics (servicing cost, principal, interest)? Platform / portfolio fit? Reliability budget? Velocity tax on adjacent work? |
+| **architect-persona** | v2 (471 lines) | Component shape — boundaries, separation of concerns, style fit, build-vs-buy AND buy-vs-build? Coupling rubric, internal blast radius, reversibility classification, evolution stress test, cross-cutting drift? |
+| **pm-persona** | v2 (554 lines) | Two regimes: **strategic** (WHAT we ship, WHY now, COMPETE — public-sources-only, internal data is `NEEDS-HUMAN-INPUT`) + **execution** (RAID with structured rows, reference-class estimation, DoD by change-class, commitment / acceptance trace). |
+| **software-engineer-persona** | v2 (521 lines) | Diff-class taxonomy + 9-class defect taxonomy + executable reproducer per defect + maintainability rubrics (cyclomatic, dup, length) + testability/DI lens + security-shape flag-and-defer + reviewability + git-shape signals (churn, co-change). |
+| **llm-researcher-persona** | v2 (602 lines) | Three-tier audit (quick/standard/deep) + reproducibility manifest + ablation evidence (not correlation) + slice analysis with CIs + LLM-judge integrity + agentic forensics + cost/latency tuples + distribution-shift monitoring. |
+| **qa-persona** | v1 | What edges are untested? What's the regression blast radius? |
+| **devops-sre-persona** | v1 | How does this deploy? Roll back? Page someone? |
+| **data-engineer-persona** | v1 | Is the schema migration safe? Idempotency? Lineage? |
+| **ux-copy-persona** | v1 | Are the strings, errors, empty states, microcopy good? Code-observable a11y? |
+| **compliance-privacy-persona** | v1 | What's the data classification? Retention? Consent? |
+| **api-steward-persona** | v1 | Does this break consumers? Versioning? Deprecation path? |
+
+The seven v2 personas ship with a **codified boundary table** —
+each lists every concern in the roundtable and which persona
+owns it. When two v2 personas run in the same roundtable, both
+defer per the same table rather than rediscovering boundaries
+at runtime. This eliminates the "three competing strategic
+verdicts in one report" failure mode.
 
 Two embedded-prompt personas (no file, used inside `/persona-roundtable`):
 

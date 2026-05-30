@@ -66,19 +66,42 @@ messages, or chat — Claude must:
 ## 3. Multi-persona reviews
 
 - Use `/persona-roundtable <scope>` to get a multi-perspective review
-  of a change. Personas: CEO, CFO, CTO, PM, Staff Software Engineer,
-  Independent Code Reviewer (general-purpose), Security Engineer
-  (general-purpose), QA, ML/AI LLM Researcher, DevOps/SRE, Data
-  Engineer, UX/Copy, Compliance/Privacy, API Steward.
-- The orchestrator selects only personas relevant to the scope (e.g.,
-  skip Data Engineer if no DB / ETL involvement; skip API Steward if
-  no public surface change).
+  of a change. Personas: CEO, CFO, CTO, **Software Architect**, PM,
+  Staff Software Engineer, Independent Code Reviewer (general-
+  purpose), Security Engineer (general-purpose), QA, ML/AI LLM
+  Researcher, DevOps/SRE, Data Engineer, UX/Copy, Compliance/Privacy,
+  API Steward.
+- **Seven personas are at v2 rigor** (≥400 lines each, audit-cost
+  tier `quick`/`standard`/`deep`, evidence-regime constraints,
+  codified boundary table, `NEEDS-HUMAN-INPUT` discipline,
+  alternative-hypotheses requirement, multi-item self-checks):
+  LLM Researcher, PM, CFO, Software Engineer, Architect, CEO,
+  CTO. The remaining six (QA, DevOps/SRE, Data Engineer, UX/Copy,
+  Compliance/Privacy, API Steward) are at v1.
+- **Codified boundary tables.** Each v2 persona ships with a
+  boundary table mapping every concern in the roundtable to its
+  owner persona. When two v2 personas run together, both defer
+  per the same table. This eliminates overlapping verdicts.
+- The orchestrator selects only personas relevant to the scope
+  (e.g., skip Data Engineer if no DB / ETL involvement; skip API
+  Steward if no public surface change). Use `--exclude N,M,...` /
+  `--only N,M,...` to override; mutually exclusive.
+- Selection accepts persona ordinals (1–15) or short names; see
+  `.claude/commands/persona-roundtable.md` for the canonical list.
+- Brief mode: pass a `.md` file whose H1 begins
+  `# Roundtable brief:` and the personas treat it as
+  instructions describing what to evaluate (not the artifact
+  under review).
 - All personas operate from the same `facts.md` evidence packet
-  produced by the orchestrator. Personas may NOT invent facts; they
-  may only reason from the packet or from files they read directly.
-- Cross-examination is mandatory: each persona's "QUESTIONS FOR OTHER
-  PERSONAS" must be sent to the addressed persona and answered before
-  synthesis.
+  produced by the orchestrator. Personas may NOT invent facts;
+  they may only reason from the packet or from files they read
+  directly. v2 personas additionally use `NEEDS-HUMAN-INPUT` for
+  data classes that aren't inventable (internal financials,
+  customer voice, market sizing, runway).
+- Cross-examination is mandatory: each persona's "QUESTIONS FOR
+  OTHER PERSONAS" must be sent to the addressed persona and
+  answered before synthesis. If the addressed persona was
+  excluded, the question is logged as open for human follow-up.
 
 ## 3.5 Hooks active in every session
 

@@ -83,20 +83,20 @@ require editing the installer.
     │   ├── pr-preflight.md                 # /pr-preflight [--strict]
     │   ├── handoff.md                      # /handoff [topic]
     │   └── retro.md                        # /retro
-    └── agents\                             # 13 persona files
-        ├── ceo-persona.md
-        ├── cfo-persona.md
+    └── agents\                             # 13 persona files; 7 at v2 rigor
+        ├── ceo-persona.md                  # v2 — 428 lines, full rigor
+        ├── cfo-persona.md                  # v2 — 523 lines, full rigor
         ├── cto-persona.md                  # v2 — 412 lines, full rigor
         ├── architect-persona.md            # v2 — 471 lines, full rigor
-        ├── pm-persona.md
-        ├── software-engineer-persona.md
-        ├── qa-persona.md
+        ├── pm-persona.md                   # v2 — 554 lines, full rigor (strategic + execution regimes)
+        ├── software-engineer-persona.md    # v2 — 521 lines, full rigor
+        ├── qa-persona.md                   # v1
         ├── llm-researcher-persona.md       # v2 — 602 lines, full rigor
-        ├── devops-sre-persona.md
-        ├── data-engineer-persona.md
-        ├── ux-copy-persona.md
-        ├── compliance-privacy-persona.md
-        └── api-steward-persona.md
+        ├── devops-sre-persona.md           # v1
+        ├── data-engineer-persona.md        # v1
+        ├── ux-copy-persona.md              # v1
+        ├── compliance-privacy-persona.md   # v1
+        └── api-steward-persona.md          # v1
 ```
 
 ## How it works

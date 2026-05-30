@@ -35,18 +35,33 @@ the hook implementation language so each platform runs natively.
 1. **Establish facts** — build `facts.md` (the single source of
    truth all personas may cite).
 2. **Parallel dispatch** — up to 15 personas in one round-trip:
-   - Bespoke: CEO, CFO, CTO, Software Architect, PM, Staff
-     Software Engineer, QA Lead, LLM Researcher, DevOps/SRE,
-     Data Engineer, UX/Copy, Compliance/Privacy, API Steward.
+   - Bespoke (file-backed): CEO, CFO, CTO, Software Architect,
+     PM, Staff Software Engineer, QA Lead, LLM Researcher,
+     DevOps/SRE, Data Engineer, UX/Copy, Compliance/Privacy,
+     API Steward.
    - Built-in `general-purpose` with embedded prompt templates:
      Independent Code Reviewer, Security Engineer.
+   - **Seven personas at v2 rigor** (≥400 lines each, audit-cost
+     tier, evidence-regime constraints, codified boundary table,
+     `NEEDS-HUMAN-INPUT` discipline): LLM Researcher (602),
+     PM (554), CFO (523), Software Engineer (521), Architect
+     (471), CEO (428), CTO (412).
+   - Selection flags: `--exclude N,M,...` and `--only N,M,...`
+     accept persona ordinals (1–15) or short names. Mutually
+     exclusive. Default = full set, then relevance-gated by
+     scope.
+   - Brief mode: pass a `.md` file whose H1 begins
+     `# Roundtable brief:` and the personas treat it as
+     instructions describing what to evaluate (not the
+     artifact under review).
    - The orchestrator selects only the personas relevant to the
      scope (e.g., skip Data Engineer if no DB/ETL involvement).
 3. **Cross-examination** — every "QUESTIONS FOR OTHER PERSONAS" is
    routed via `SendMessage` so personas literally talk to each
    other.
 4. **Synthesis** — orchestrator writes `report.md` with consensus,
-   disagreements, unanimous risks, and open human questions.
+   disagreements, unanimous risks, coverage gaps, and open
+   human questions.
 
 ### Goal 3 — Factual analysis only
 `CLAUDE.md` codifies five hard rules:
