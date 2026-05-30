@@ -5,6 +5,10 @@ are functionally identical — same `CLAUDE.md`, same persona agents,
 same slash commands, same evidence-first rules. They differ only in
 the hook implementation language so each platform runs natively.
 
+> **New here?** Read **[USAGE.md](./USAGE.md)** for end-to-end
+> examples of every command and hook, plus four full workflows
+> (new feature, bug fix, PR review, prompt audit).
+
 | Folder | Platform | Hook language | Installer |
 |---|---|---|---|
 | `linux-macos/` | Linux, macOS, WSL | bash + `python` (optional) | `bash install.sh [target]` |
@@ -30,10 +34,10 @@ the hook implementation language so each platform runs natively.
 `/persona-roundtable <scope>` runs four phases:
 1. **Establish facts** — build `facts.md` (the single source of
    truth all personas may cite).
-2. **Parallel dispatch** — up to 14 personas in one round-trip:
-   - Bespoke: CEO, CFO, CTO, PM, Staff Software Engineer, QA Lead,
-     LLM Researcher, DevOps/SRE, Data Engineer, UX/Copy,
-     Compliance/Privacy, API Steward.
+2. **Parallel dispatch** — up to 15 personas in one round-trip:
+   - Bespoke: CEO, CFO, CTO, Software Architect, PM, Staff
+     Software Engineer, QA Lead, LLM Researcher, DevOps/SRE,
+     Data Engineer, UX/Copy, Compliance/Privacy, API Steward.
    - Built-in `general-purpose` with embedded prompt templates:
      Independent Code Reviewer, Security Engineer.
    - The orchestrator selects only the personas relevant to the

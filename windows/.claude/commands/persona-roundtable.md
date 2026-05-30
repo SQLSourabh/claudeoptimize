@@ -35,7 +35,8 @@ yourself. No speculation."*
 |---|---|---|
 | CEO | ceo-persona | Strategic fit, opportunity cost, market risk |
 | CFO | cfo-persona | Cost (compute, headcount, vendor), ROI, runway impact |
-| CTO / CIO | cto-persona | Architecture, tech debt, platform alignment |
+| CTO / CIO | cto-persona | Tech debt, scalability, observability, platform alignment |
+| Software Architect | architect-persona | Component boundaries, separation of concerns, style fit, build-vs-buy, cross-cutting drift, extensibility (use whenever scope adds modules, dependencies, or new layers) |
 | Project Manager | pm-persona | Scope, schedule, dependencies, RAID log |
 | Staff Software Engineer | software-engineer-persona | Code correctness, consistency with established patterns, test quality, maintainability |
 | Independent Code Reviewer | general-purpose | Second-opinion code review (cross-checks the Staff Engineer persona) — see prompt template below |
