@@ -59,9 +59,13 @@ messages, or chat — Claude must:
   resolved `Checkpoint.md`. Before compaction completes, fill in
   every `<!-- Claude: ... -->` placeholder with cited content from
   the current session.
-- The `/EOD_Summary` command rolls up the day's checkpoint blocks
-  into a new section of the resolved `EOD_Summary.md`. It never
-  edits prior sections.
+- The `/EOD_Summary` command rolls up checkpoint blocks into
+  the resolved `EOD_Summary.md`. Four modes: today (default),
+  a specific date, `--since-last` (catch up since the latest
+  entry already in the file), and
+  `--range YYYY-MM-DD..YYYY-MM-DD`. Append-only and idempotent
+  — never edits prior sections; re-running `--since-last` is a
+  no-op when caught up.
 
 ## 3. Multi-persona reviews
 

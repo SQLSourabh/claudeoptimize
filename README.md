@@ -26,9 +26,12 @@ the hook implementation language so each platform runs natively.
 - `PreCompact` and `Stop` hooks re-resolve the location and
   **append** a structured stub, then instruct Claude to fill in the
   placeholders with cited content before compaction completes.
-- `/EOD_Summary [YYYY-MM-DD]` resolves the same way (via `Glob`),
-  rolls up the day's checkpoint blocks into a new section of
-  `EOD_Summary.md`. Never edits prior content.
+- `/EOD_Summary` resolves the same way (via `Glob`), rolls up
+  checkpoint blocks into `EOD_Summary.md`. Four mutually-
+  exclusive modes: today (default), specific date, `--since-last`
+  (catch up since the latest entry already in the file), and
+  `--range YYYY-MM-DD..YYYY-MM-DD`. Append-only, idempotent —
+  re-running `--since-last` after success is a no-op.
 
 ### Goal 2 — Multi-persona roundtables (vanilla, no plugins)
 `/persona-roundtable <scope>` runs four phases:
