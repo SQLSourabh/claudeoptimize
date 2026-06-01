@@ -1404,13 +1404,18 @@ You typically use these inside `/persona-roundtable`, but each
 persona file can also be invoked directly via the `Agent` tool if
 you need a single lens.
 
-**All 13 file-backed personas are at v2 rigor** (≥348 lines
-each, audit-cost tier with `quick`/`standard`/`deep`, evidence-
-regime constraints, codified boundary table mapping every
-concern to its owner persona, `NEEDS-HUMAN-INPUT` label for
-items that aren't inventable, alternative-hypotheses requirement,
-expanded banned-phrases lists, multi-item self-checks that
-reject reports failing the constraints).
+**All 15 personas are file-backed and at v2 rigor** (≥348
+lines each, audit-cost tier with `quick`/`standard`/`deep`,
+evidence-regime constraints, codified boundary table mapping
+every concern to its owner persona, `NEEDS-HUMAN-INPUT` label
+for items that aren't inventable, alternative-hypotheses
+requirement, expanded banned-phrases lists, multi-item
+self-checks that reject reports failing the constraints).
+
+The former embedded-prompt personas (Independent Code Reviewer
+and Security Engineer) were promoted to file-backed in this
+version — they no longer use `general-purpose` with inline
+prompts.
 
 | Persona | Lines | Main question they answer |
 |---|---|---|
@@ -1427,20 +1432,15 @@ reject reports failing the constraints).
 | **ux-copy-persona** | 393 | Error-message rubric + copy-quality rubric + empty-state rubric + **WCAG-anchored a11y** + content-design-system fit + missing strings + microcopy hygiene + i18n readiness. |
 | **compliance-privacy-persona** | 421 | **13-framework taxonomy** (GDPR, CCPA, HIPAA, GLBA, PCI, SOC 2, ISO 27001, FedRAMP, FERPA, COPPA, DPDP, LGPD, sanctions) + DPIA / RoPA + data-subject rights + cross-border lawful-transfer mechanism + breach-notification readiness + sub-processor + retention min/max + audit-evidence durability. |
 | **api-steward-persona** | 414 | Versioning posture + commitment level + **17-row breaking-change subclass taxonomy** with required mitigation per row + deprecation rigor (cited policy, future date, comms, alias) + contract-test matrix + client-diversity assessment + portfolio-drift scan. |
+| **security-engineer-persona** | 448 | **Vulnerability surface** — authn/authz endpoint-by-endpoint + injection (per input → sink) + data exposure + crypto API misuse + multi-tenant isolation + dependency-vuln (CVE check via WebFetch) + secrets hygiene + STRIDE / OWASP-Top-10 coverage + trust-boundary check. |
+| **independent-reviewer-persona** | 367 | **Second pair of eyes on Staff Engineer's verdict.** AGREEMENT-WITH-STAFF-ENG matrix (CONCUR / CONCUR-WITH-NUANCE / DISSENT per concern) + missed-by-staff section (the value-add) + inference-chain critique + rubric re-validation (independent counts) + handoff-gap detection. Padding forbidden — concurrences are one line each. |
 
-The 13 v2 personas ship with a **codified boundary table** —
+The 15 v2 personas ship with a **codified boundary table** —
 each lists every concern in the roundtable and which persona
 owns it. When v2 personas run in the same roundtable, all
 defer per the same table rather than rediscovering boundaries
 at runtime. This eliminates the "three competing strategic
 verdicts in one report" failure mode.
-
-Two embedded-prompt personas (no file, used inside `/persona-roundtable`):
-
-| Persona | Subagent type | Lens |
-|---|---|---|
-| Independent Code Reviewer | `general-purpose` | Cross-checks Staff Engineer; surfaces what they missed. |
-| Security Engineer | `general-purpose` | Authn/z, injection, data exposure, crypto, isolation, secrets. |
 
 ### Calling a single persona directly
 

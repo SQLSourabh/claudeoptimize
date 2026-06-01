@@ -34,21 +34,20 @@ the hook implementation language so each platform runs natively.
 `/persona-roundtable <scope>` runs four phases:
 1. **Establish facts** — build `facts.md` (the single source of
    truth all personas may cite).
-2. **Parallel dispatch** — up to 15 personas in one round-trip:
-   - Bespoke (file-backed): CEO, CFO, CTO, Software Architect,
-     PM, Staff Software Engineer, QA Lead, LLM Researcher,
-     DevOps/SRE, Data Engineer, UX/Copy, Compliance/Privacy,
-     API Steward.
-   - Built-in `general-purpose` with embedded prompt templates:
-     Independent Code Reviewer, Security Engineer.
-   - **All 13 file-backed personas at v2 rigor** (≥348 lines
-     each, audit-cost tier, evidence-regime constraints, codified
-     boundary table, `NEEDS-HUMAN-INPUT` discipline,
-     alternative-hypotheses requirement, multi-item self-checks):
-     LLM Researcher (602), PM (554), CFO (523), Software Engineer
-     (521), Architect (471), Data Engineer (443), CEO (428),
-     Compliance/Privacy (421), API Steward (414), CTO (412),
-     UX/Copy (393), DevOps/SRE (391), QA Lead (348).
+2. **Parallel dispatch** — up to 15 personas in one round-trip,
+   ALL file-backed under `.claude/agents/`. (The former
+   `general-purpose` embedded-prompt personas — Independent
+   Code Reviewer and Security Engineer — have been promoted to
+   file-backed v2.)
+   - **All 15 personas at v2 rigor** (≥348 lines each, audit-
+     cost tier, evidence-regime constraints, codified boundary
+     table, `NEEDS-HUMAN-INPUT` discipline, alternative-
+     hypotheses requirement, multi-item self-checks):
+     LLM Researcher (602), PM (554), CFO (523), Software
+     Engineer (521), Architect (471), Security Engineer (448),
+     Data Engineer (443), CEO (428), Compliance/Privacy (421),
+     API Steward (414), CTO (412), UX/Copy (393), DevOps/SRE
+     (391), Independent Code Reviewer (367), QA Lead (348).
    - Selection flags: `--exclude N,M,...` and `--only N,M,...`
      accept persona ordinals (1–15) or short names. Mutually
      exclusive. Default = full set, then relevance-gated by

@@ -83,7 +83,7 @@ require editing the installer.
     │   ├── pr-preflight.md                 # /pr-preflight [--strict]
     │   ├── handoff.md                      # /handoff [topic]
     │   └── retro.md                        # /retro
-    └── agents\                             # 13 persona files; ALL at v2 rigor
+    └── agents\                             # 15 persona files; ALL at v2 rigor
         ├── ceo-persona.md                  # v2 — 428 lines
         ├── cfo-persona.md                  # v2 — 523 lines
         ├── cto-persona.md                  # v2 — 412 lines
@@ -96,7 +96,9 @@ require editing the installer.
         ├── data-engineer-persona.md        # v2 — 443 lines (data-quality SLO + lineage)
         ├── ux-copy-persona.md              # v2 — 393 lines (WCAG-anchored a11y)
         ├── compliance-privacy-persona.md   # v2 — 421 lines (13-framework taxonomy)
-        └── api-steward-persona.md          # v2 — 414 lines (17-row breaking-change taxonomy)
+        ├── api-steward-persona.md          # v2 — 414 lines (17-row breaking-change taxonomy)
+        ├── security-engineer-persona.md    # v2 — 448 lines (vulnerability surface + STRIDE)
+        └── independent-reviewer-persona.md # v2 — 367 lines (cross-checks Staff Engineer)
 ```
 
 ## How it works

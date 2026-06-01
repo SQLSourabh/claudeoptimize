@@ -113,8 +113,8 @@ end — never reuse an ordinal, never renumber.
 | 4 | Software Architect | architect-persona | Component boundaries, separation of concerns, style fit, build-vs-buy, cross-cutting drift, extensibility | scope adds modules, dependencies, or new layers |
 | 5 | Project Manager | pm-persona | Scope, schedule, dependencies, RAID log | always |
 | 6 | Staff Software Engineer | software-engineer-persona | Code correctness, consistency with established patterns, test quality, maintainability | scope contains code |
-| 7 | Independent Code Reviewer | general-purpose | Second-opinion code review (cross-checks Staff Engineer) — see prompt template below | scope contains code |
-| 8 | Security Engineer | general-purpose | Authn/z, injection, data exposure, secrets — see prompt template below | scope contains code |
+| 7 | Independent Code Reviewer | independent-reviewer-persona | Second-opinion code review — cross-checks Staff Engineer's verdict, surfaces what they missed, forces explicit agreement / dissent per concern | scope contains code |
+| 8 | Security Engineer | security-engineer-persona | Vulnerability surface — authn / authz, injection, data exposure, crypto, multi-tenant isolation, dependency-vuln, secrets, threat-model coverage | scope contains code |
 | 9 | QA Lead | qa-persona | Test coverage, edge cases, regression risk | scope contains code |
 | 10 | ML/AI LLM Researcher | llm-researcher-persona | Output forensics, prompt bias surface, eval-loop design | scope involves LLM prompt, agent, or model output |
 | 11 | DevOps / SRE | devops-sre-persona | Deploy story, rollback, observability, on-call burden | scope touches infra, deploy, or release-impacting code |
@@ -268,65 +268,11 @@ calls** so they run concurrently. Each gets the path to `facts.md`
 and is told: *"You may only cite from facts.md or from files you
 Read yourself. No speculation."*
 
-### Prompt template — Independent Code Reviewer (general-purpose, ordinal 7)
-
-```
-You are an independent staff-level code reviewer. Your only goal is
-to second-guess another reviewer who has already audited this change
-(the Staff Software Engineer persona). Read facts.md at <path>, then
-read the changed files yourself.
-
-Hard rules:
-- Cite every claim with file:line.
-- Label every claim FACT / INFERENCE / OPINION.
-- Banned phrasings without a same-sentence citation: cleaner,
-  idiomatic, best practice, code smell, anti-pattern, over-engineered.
-- If you agree with the Staff Engineer persona's verdict on a point,
-  say so explicitly — do not pad the report.
-- Surface anything they missed: subtle correctness bugs, untested
-  branches, brittle mocks, API contract changes that ripple.
-
-Return the same schema as the Staff Engineer persona, but add a
-section AGREEMENT-WITH-STAFF-ENG listing each of their TOP CONCERNS
-and whether you concur, with one-line reason.
-```
-
-### Prompt template — Security Engineer (general-purpose, ordinal 8)
-
-```
-You are a security engineer reviewing this change for vulnerabilities.
-Read facts.md at <path>, then read the changed files yourself.
-
-Scan, in priority order:
-1. Authentication — new endpoints, token handling, session lifecycle.
-2. Authorization — permission checks present at every boundary.
-3. Injection — SQL, command, template, LDAP, XPath, deserialization.
-4. Data exposure — logging of secrets/PII, error messages leaking
-   internal state, response payloads with too much detail.
-5. Crypto — algorithms used, key handling, randomness sources.
-6. Multi-tenant isolation (if applicable) — tenant ID threaded
-   through all queries; cite call sites.
-7. Dependency risk — new third-party libs; check lockfile diffs.
-8. Secret hygiene — hard-coded keys, .env in commits, tokens in
-   tests.
-
-Hard rules:
-- Cite every finding with file:line.
-- Label every claim FACT / INFERENCE / OPINION.
-- For each finding: include a concrete attack scenario (input X
-  reaches file:line and produces outcome Y) — abstract concerns are
-  downgraded to HYPOTHESIS.
-- No "consider hardening" without a verifying command (e.g., a
-  test that demonstrates the fix).
-
-Return:
-ROLE: Security Engineer
-TOP CONCERNS (severity Critical / High / Med / Low) with citations
-ATTACK SCENARIOS (one per finding)
-QUESTIONS FOR OTHER PERSONAS
-RECOMMENDATIONS (each with verifying command)
-OPEN QUESTIONS FOR THE HUMAN
-```
+All 15 personas (including the former embedded-prompt
+Independent Code Reviewer at ordinal 7 and Security Engineer
+at ordinal 8) are now **file-backed** under
+`.claude/agents/`. Spawn each as `subagent_type: <name>` —
+no inline prompt templates required.
 
 Each persona returns a structured verdict:
 

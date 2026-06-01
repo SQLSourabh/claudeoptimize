@@ -71,15 +71,18 @@ messages, or chat — Claude must:
   purpose), Security Engineer (general-purpose), QA, ML/AI LLM
   Researcher, DevOps/SRE, Data Engineer, UX/Copy, Compliance/Privacy,
   API Steward.
-- **All 13 file-backed personas are at v2 rigor** (≥348 lines
+- **All 15 file-backed personas are at v2 rigor** (≥348 lines
   each, audit-cost tier `quick`/`standard`/`deep`, evidence-
   regime constraints, codified boundary table,
   `NEEDS-HUMAN-INPUT` discipline, alternative-hypotheses
-  requirement, multi-item self-checks). Sizes:
-  LLM Researcher 602, PM 554, CFO 523, Software Engineer 521,
-  Architect 471, Data Engineer 443, CEO 428, Compliance/Privacy
-  421, API Steward 414, CTO 412, UX/Copy 393, DevOps/SRE 391,
-  QA Lead 348.
+  requirement, multi-item self-checks). The former
+  embedded-prompt personas (Independent Code Reviewer and
+  Security Engineer) have been promoted to file-backed v2.
+  Sizes: LLM Researcher 602, PM 554, CFO 523, Software
+  Engineer 521, Architect 471, Security Engineer 448, Data
+  Engineer 443, CEO 428, Compliance/Privacy 421, API Steward
+  414, CTO 412, UX/Copy 393, DevOps/SRE 391, Independent Code
+  Reviewer 367, QA Lead 348.
 - **Codified boundary tables.** Each v2 persona ships with a
   boundary table mapping every concern in the roundtable to its
   owner persona. When v2 personas run together, all defer per
