@@ -790,17 +790,28 @@ Claude makes the targeted Edit to CLAUDE.md (and ONLY that edit).
 
 ## 14. /EOD_Summary
 
-**Purpose:** Roll up today's `Checkpoint.md` blocks into a daily
-summary section in `EOD_Summary.md`. Append-only.
+**Purpose:** Roll up `Checkpoint.md` blocks into per-date
+summary sections in `EOD_Summary.md`. Append-only.
 
-**Syntax:** `/EOD_Summary [YYYY-MM-DD]`  (default = today UTC)
+**Syntax:**
 
-### Example
+```
+/EOD_Summary
+/EOD_Summary YYYY-MM-DD
+/EOD_Summary --since-last        # alias: --catchup
+/EOD_Summary --range YYYY-MM-DD..YYYY-MM-DD
+```
+
+The four modes are mutually exclusive.
+
+### Mode A — today (default)
 
 > /EOD_Summary
 
+Summarizes today (UTC). One section appended.
+
 ```markdown
-## EOD Summary — 2026-05-30
+## EOD Summary — 2026-06-01
 
 ### Sessions included
 - sess-abc-123 @ 14:02
@@ -809,38 +820,86 @@ summary section in `EOD_Summary.md`. Append-only.
 ### Completed / Resolved today
 - Rate-limiter middleware wired into /api/login —
   evidence: src/routes/login.py:14, pytest exit 0
-- ADR-0017 written and accepted —
-  evidence: docs/adr/0017-...md
-
-### Decisions made
-- Use Redis (not Memcached) for session storage — rationale:
-  ADR-0011 §"Why we abandoned sticky" — evidence: ADR-0017
-
-### Still open / In-flight
-- Per-IP isolation test — owner: me — next step: pytest
-  tests/security/test_login_rate_limit.py::test_per_ip
-
-### Blockers / Unresolved questions
-- Bypass list for internal IPs — awaiting infra team
-
-### Files touched (deduplicated)
-- created: src/middleware/rate_limit.py,
-           tests/security/test_login_rate_limit.py
-- modified: src/routes/login.py, src/config.py
-- deleted: (none)
-
-### Verification log (facts only)
-- pytest tests/security/ -v → 0
-- /pr-preflight → PASS (with 1 warning)
+...
 ```
 
-### Backfill yesterday
+### Mode B — specific date (backfill one day)
 
 > /EOD_Summary 2026-05-29
 
-Same format, scoped to that date's checkpoint blocks. If no blocks
-match, the section says "No checkpoints recorded for 2026-05-29."
-— never fabricates.
+Same format, scoped to that date. If no checkpoints exist for
+that date, section says `No checkpoints recorded for
+2026-05-29.` — never fabricated.
+
+### Mode C — catch-up (most common new use case)
+
+> /EOD_Summary --since-last
+
+Finds the latest `## EOD Summary — <date>` heading already in
+`EOD_Summary.md`, then summarizes every date from that
+**plus one** through today (inclusive). Use this when you've
+been away for a few days and want to backfill everything
+since your last roll-up.
+
+| State of EOD_Summary.md | What `--since-last` does |
+|---|---|
+| Empty (no prior `## EOD Summary —`) | Summarize from the earliest `## Checkpoint @` date through today |
+| Last entry is yesterday | Summarize today only |
+| Last entry is 5 days ago | Summarize the last 5 dates (last entry + 1 through today) |
+| Last entry is today already | No-op: prints "EOD already current — last entry is today" |
+| Last entry is in the future | ERROR: refuses to backfill 'past' entries when file is past today |
+| Gap > 30 days | Caps at most-recent 30 dates with a warning. Use `--range` for more |
+
+`--catchup` is an alias.
+
+### Mode D — explicit range
+
+> /EOD_Summary --range 2026-05-25..2026-05-31
+
+Each date in the inclusive range gets its own section. Useful
+when you need a specific window that doesn't align with
+"since-last."
+
+Constraints:
+- Both dates must match `YYYY-MM-DD`.
+- Start must precede end.
+- No date may be in the future.
+- Caps at 90 dates (errors if larger — explicit-range users
+  probably mean it).
+
+### Empty-date sections
+
+For any target date with zero checkpoints, the section says
+`No checkpoints recorded for <date>.` rather than being
+omitted. This makes the EOD log a complete daily ledger.
+
+### Idempotency
+
+Re-running `--since-last` after a successful run produces the
+no-op message — not duplicate sections. The append-only
+contract is verified post-write (the file's pre-existing
+prefix must be byte-identical to its pre-write state).
+
+### Confirmation report
+
+After appending, the command prints a 5-line confirmation
+including:
+
+- Mode used (today / date / since-last / range)
+- Target file path resolved
+- Per-date checkpoint-block counts
+- Bytes appended; file size before / after
+- Append-only verification result
+
+### Error cases
+
+| Input | Result |
+|---|---|
+| `/EOD_Summary 2026-05-30 --since-last` | Mode collision — pick one |
+| `/EOD_Summary --range 2026-06-01..2026-05-29` | Range start must precede end |
+| `/EOD_Summary --range 2026-05-25..2099-01-01` | No date may be in the future |
+| `/EOD_Summary --range 2025-01-01..2026-06-01` | Range exceeds 90-day cap |
+| `/EOD_Summary 2026-13-99` | Malformed date |
 
 ---
 
