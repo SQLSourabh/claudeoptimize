@@ -215,6 +215,8 @@ Remove-Item .claude\hooks\blast-radius.ps1
 Remove-Item .claude\hooks\edit-recorder.ps1
 Get-ChildItem .claude\commands\*.md | Remove-Item
 Get-ChildItem .claude\agents\*-persona.md | Remove-Item
+# (the glob covers all 15 personas including security-engineer-persona.md
+#  and independent-reviewer-persona.md)
 # Remove the hook entries from .claude\settings.json by hand,
 # or restore from .bak if the installer made one.
 # Checkpoint.md and EOD_Summary.md persist unless you delete them.

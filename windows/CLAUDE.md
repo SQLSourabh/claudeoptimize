@@ -67,22 +67,21 @@ messages, or chat — Claude must:
 
 - Use `/persona-roundtable <scope>` to get a multi-perspective review
   of a change. Personas: CEO, CFO, CTO, **Software Architect**, PM,
-  Staff Software Engineer, Independent Code Reviewer (general-
-  purpose), Security Engineer (general-purpose), QA, ML/AI LLM
-  Researcher, DevOps/SRE, Data Engineer, UX/Copy, Compliance/Privacy,
-  API Steward.
-- **All 15 file-backed personas are at v2 rigor** (≥348 lines
-  each, audit-cost tier `quick`/`standard`/`deep`, evidence-
-  regime constraints, codified boundary table,
+  Staff Software Engineer, Independent Code Reviewer, Security
+  Engineer, QA, ML/AI LLM Researcher, DevOps/SRE, Data Engineer,
+  UX/Copy, Compliance/Privacy, API Steward.
+- **All 15 personas are file-backed and at v2 rigor** (≥348
+  lines each, audit-cost tier `quick`/`standard`/`deep`,
+  evidence-regime constraints, codified boundary table,
   `NEEDS-HUMAN-INPUT` discipline, alternative-hypotheses
-  requirement, multi-item self-checks). The former
-  embedded-prompt personas (Independent Code Reviewer and
-  Security Engineer) have been promoted to file-backed v2.
-  Sizes: LLM Researcher 602, PM 554, CFO 523, Software
-  Engineer 521, Architect 471, Security Engineer 448, Data
-  Engineer 443, CEO 428, Compliance/Privacy 421, API Steward
-  414, CTO 412, UX/Copy 393, DevOps/SRE 391, Independent Code
-  Reviewer 367, QA Lead 348.
+  requirement, multi-item self-checks). No `general-purpose`
+  embedded-prompt personas exist — every persona dispatches
+  via its own `subagent_type`. Sizes: LLM Researcher 602,
+  PM 554, CFO 523, Software Engineer 521, Architect 471,
+  Security Engineer 448, Data Engineer 443, CEO 428,
+  Compliance/Privacy 421, API Steward 414, CTO 412, UX/Copy
+  393, DevOps/SRE 391, Independent Code Reviewer 367, QA
+  Lead 348.
 - **Codified boundary tables.** Each v2 persona ships with a
   boundary table mapping every concern in the roundtable to its
   owner persona. When v2 personas run together, all defer per

@@ -177,7 +177,7 @@ play.
 rm -rf .claude/hooks/_*.{sh,py} \
        .claude/hooks/{ensure-checkpoint-files,append-checkpoint,secrets-guard,scope-guard,test-first-enforcer,blast-radius,edit-recorder}.sh \
        .claude/commands/{EOD_Summary,persona-roundtable,llm-audit,scope,spec,repro,adr,pr-preflight,handoff,retro}.md \
-       .claude/agents/{ceo,cfo,cto,architect,pm,software-engineer,qa,llm-researcher,devops-sre,data-engineer,ux-copy,compliance-privacy,api-steward}-persona.md
+       .claude/agents/{ceo,cfo,cto,architect,pm,software-engineer,qa,llm-researcher,devops-sre,data-engineer,ux-copy,compliance-privacy,api-steward,security-engineer,independent-reviewer}-persona.md
 # Remove the hook entries from .claude/settings.json by hand,
 # or restore from .bak if the installer made one.
 # Checkpoint.md and EOD_Summary.md persist unless you delete them.

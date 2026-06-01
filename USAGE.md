@@ -1411,11 +1411,9 @@ every concern to its owner persona, `NEEDS-HUMAN-INPUT` label
 for items that aren't inventable, alternative-hypotheses
 requirement, expanded banned-phrases lists, multi-item
 self-checks that reject reports failing the constraints).
-
-The former embedded-prompt personas (Independent Code Reviewer
-and Security Engineer) were promoted to file-backed in this
-version — they no longer use `general-purpose` with inline
-prompts.
+There are no `general-purpose` embedded-prompt personas — the
+roundtable dispatches every persona via its file-backed
+`subagent_type`.
 
 | Persona | Lines | Main question they answer |
 |---|---|---|
