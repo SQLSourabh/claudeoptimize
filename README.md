@@ -41,11 +41,14 @@ the hook implementation language so each platform runs natively.
      API Steward.
    - Built-in `general-purpose` with embedded prompt templates:
      Independent Code Reviewer, Security Engineer.
-   - **Seven personas at v2 rigor** (≥400 lines each, audit-cost
-     tier, evidence-regime constraints, codified boundary table,
-     `NEEDS-HUMAN-INPUT` discipline): LLM Researcher (602),
-     PM (554), CFO (523), Software Engineer (521), Architect
-     (471), CEO (428), CTO (412).
+   - **All 13 file-backed personas at v2 rigor** (≥348 lines
+     each, audit-cost tier, evidence-regime constraints, codified
+     boundary table, `NEEDS-HUMAN-INPUT` discipline,
+     alternative-hypotheses requirement, multi-item self-checks):
+     LLM Researcher (602), PM (554), CFO (523), Software Engineer
+     (521), Architect (471), Data Engineer (443), CEO (428),
+     Compliance/Privacy (421), API Steward (414), CTO (412),
+     UX/Copy (393), DevOps/SRE (391), QA Lead (348).
    - Selection flags: `--exclude N,M,...` and `--only N,M,...`
      accept persona ordinals (1–15) or short names. Mutually
      exclusive. Default = full set, then relevance-gated by

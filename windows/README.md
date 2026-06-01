@@ -83,20 +83,20 @@ require editing the installer.
     │   ├── pr-preflight.md                 # /pr-preflight [--strict]
     │   ├── handoff.md                      # /handoff [topic]
     │   └── retro.md                        # /retro
-    └── agents\                             # 13 persona files; 7 at v2 rigor
-        ├── ceo-persona.md                  # v2 — 428 lines, full rigor
-        ├── cfo-persona.md                  # v2 — 523 lines, full rigor
-        ├── cto-persona.md                  # v2 — 412 lines, full rigor
-        ├── architect-persona.md            # v2 — 471 lines, full rigor
-        ├── pm-persona.md                   # v2 — 554 lines, full rigor (strategic + execution regimes)
-        ├── software-engineer-persona.md    # v2 — 521 lines, full rigor
-        ├── qa-persona.md                   # v1
-        ├── llm-researcher-persona.md       # v2 — 602 lines, full rigor
-        ├── devops-sre-persona.md           # v1
-        ├── data-engineer-persona.md        # v1
-        ├── ux-copy-persona.md              # v1
-        ├── compliance-privacy-persona.md   # v1
-        └── api-steward-persona.md          # v1
+    └── agents\                             # 13 persona files; ALL at v2 rigor
+        ├── ceo-persona.md                  # v2 — 428 lines
+        ├── cfo-persona.md                  # v2 — 523 lines
+        ├── cto-persona.md                  # v2 — 412 lines
+        ├── architect-persona.md            # v2 — 471 lines
+        ├── pm-persona.md                   # v2 — 554 lines (strategic + execution regimes)
+        ├── software-engineer-persona.md    # v2 — 521 lines
+        ├── qa-persona.md                   # v2 — 348 lines (test-pyramid + negative-space)
+        ├── llm-researcher-persona.md       # v2 — 602 lines
+        ├── devops-sre-persona.md           # v2 — 391 lines (SLO + toil instrument)
+        ├── data-engineer-persona.md        # v2 — 443 lines (data-quality SLO + lineage)
+        ├── ux-copy-persona.md              # v2 — 393 lines (WCAG-anchored a11y)
+        ├── compliance-privacy-persona.md   # v2 — 421 lines (13-framework taxonomy)
+        └── api-steward-persona.md          # v2 — 414 lines (17-row breaking-change taxonomy)
 ```
 
 ## How it works

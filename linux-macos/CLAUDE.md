@@ -71,17 +71,19 @@ messages, or chat — Claude must:
   purpose), Security Engineer (general-purpose), QA, ML/AI LLM
   Researcher, DevOps/SRE, Data Engineer, UX/Copy, Compliance/Privacy,
   API Steward.
-- **Seven personas are at v2 rigor** (≥400 lines each, audit-cost
-  tier `quick`/`standard`/`deep`, evidence-regime constraints,
-  codified boundary table, `NEEDS-HUMAN-INPUT` discipline,
-  alternative-hypotheses requirement, multi-item self-checks):
-  LLM Researcher, PM, CFO, Software Engineer, Architect, CEO,
-  CTO. The remaining six (QA, DevOps/SRE, Data Engineer, UX/Copy,
-  Compliance/Privacy, API Steward) are at v1.
+- **All 13 file-backed personas are at v2 rigor** (≥348 lines
+  each, audit-cost tier `quick`/`standard`/`deep`, evidence-
+  regime constraints, codified boundary table,
+  `NEEDS-HUMAN-INPUT` discipline, alternative-hypotheses
+  requirement, multi-item self-checks). Sizes:
+  LLM Researcher 602, PM 554, CFO 523, Software Engineer 521,
+  Architect 471, Data Engineer 443, CEO 428, Compliance/Privacy
+  421, API Steward 414, CTO 412, UX/Copy 393, DevOps/SRE 391,
+  QA Lead 348.
 - **Codified boundary tables.** Each v2 persona ships with a
   boundary table mapping every concern in the roundtable to its
-  owner persona. When two v2 personas run together, both defer
-  per the same table. This eliminates overlapping verdicts.
+  owner persona. When v2 personas run together, all defer per
+  the same table. This eliminates overlapping verdicts.
 - The orchestrator selects only personas relevant to the scope
   (e.g., skip Data Engineer if no DB / ETL involvement; skip API
   Steward if no public surface change). Use `--exclude N,M,...` /

@@ -1404,7 +1404,7 @@ You typically use these inside `/persona-roundtable`, but each
 persona file can also be invoked directly via the `Agent` tool if
 you need a single lens.
 
-**Seven personas have been rewritten to v2 rigor** (≥400 lines
+**All 13 file-backed personas are at v2 rigor** (≥348 lines
 each, audit-cost tier with `quick`/`standard`/`deep`, evidence-
 regime constraints, codified boundary table mapping every
 concern to its owner persona, `NEEDS-HUMAN-INPUT` label for
@@ -1412,25 +1412,25 @@ items that aren't inventable, alternative-hypotheses requirement,
 expanded banned-phrases lists, multi-item self-checks that
 reject reports failing the constraints).
 
-| Persona | Status | Main question they answer |
+| Persona | Lines | Main question they answer |
 |---|---|---|
-| **ceo-persona** | v2 (428 lines) | Should the company be doing this at all? Existential-risk class? Which strategic bet does this advance and what gets starved? External signal to customers / competitors / talent / investors? |
-| **cfo-persona** | v2 (523 lines) | Total cost of ownership across full lifecycle (direct + implementation + operating + switching + hidden, amortized 1y/3y/5y)? Unit economics + break-even? Lock-in quantified in person-hours and concentration percentage? Vendor consolidation? Regulatory financial exposure? |
-| **cto-persona** | v2 (412 lines) | Production-readiness over time + tech-debt economics (servicing cost, principal, interest)? Platform / portfolio fit? Reliability budget? Velocity tax on adjacent work? |
-| **architect-persona** | v2 (471 lines) | Component shape — boundaries, separation of concerns, style fit, build-vs-buy AND buy-vs-build? Coupling rubric, internal blast radius, reversibility classification, evolution stress test, cross-cutting drift? |
-| **pm-persona** | v2 (554 lines) | Two regimes: **strategic** (WHAT we ship, WHY now, COMPETE — public-sources-only, internal data is `NEEDS-HUMAN-INPUT`) + **execution** (RAID with structured rows, reference-class estimation, DoD by change-class, commitment / acceptance trace). |
-| **software-engineer-persona** | v2 (521 lines) | Diff-class taxonomy + 9-class defect taxonomy + executable reproducer per defect + maintainability rubrics (cyclomatic, dup, length) + testability/DI lens + security-shape flag-and-defer + reviewability + git-shape signals (churn, co-change). |
-| **llm-researcher-persona** | v2 (602 lines) | Three-tier audit (quick/standard/deep) + reproducibility manifest + ablation evidence (not correlation) + slice analysis with CIs + LLM-judge integrity + agentic forensics + cost/latency tuples + distribution-shift monitoring. |
-| **qa-persona** | v1 | What edges are untested? What's the regression blast radius? |
-| **devops-sre-persona** | v1 | How does this deploy? Roll back? Page someone? |
-| **data-engineer-persona** | v1 | Is the schema migration safe? Idempotency? Lineage? |
-| **ux-copy-persona** | v1 | Are the strings, errors, empty states, microcopy good? Code-observable a11y? |
-| **compliance-privacy-persona** | v1 | What's the data classification? Retention? Consent? |
-| **api-steward-persona** | v1 | Does this break consumers? Versioning? Deprecation path? |
+| **ceo-persona** | 428 | Should the company be doing this at all? Existential-risk class? Which strategic bet does this advance and what gets starved? External signal to customers / competitors / talent / investors? |
+| **cfo-persona** | 523 | Total cost of ownership across full lifecycle (direct + implementation + operating + switching + hidden, amortized 1y/3y/5y)? Unit economics + break-even? Lock-in quantified in person-hours and concentration percentage? Vendor consolidation? Regulatory financial exposure? |
+| **cto-persona** | 412 | Production-readiness over time + tech-debt economics (servicing cost, principal, interest)? Platform / portfolio fit? Reliability budget? Velocity tax on adjacent work? |
+| **architect-persona** | 471 | Component shape — boundaries, separation of concerns, style fit, build-vs-buy AND buy-vs-build? Coupling rubric, internal blast radius, reversibility classification, evolution stress test, cross-cutting drift? |
+| **pm-persona** | 554 | Two regimes: **strategic** (WHAT we ship, WHY now, COMPETE — public-sources-only, internal data is `NEEDS-HUMAN-INPUT`) + **execution** (RAID with structured rows, reference-class estimation, DoD by change-class, commitment / acceptance trace). |
+| **software-engineer-persona** | 521 | Diff-class taxonomy + 9-class defect taxonomy + executable reproducer per defect + maintainability rubrics (cyclomatic, dup, length) + testability/DI lens + security-shape flag-and-defer + reviewability + git-shape signals (churn, co-change). |
+| **qa-persona** | 348 | Coverage strategy across the **test pyramid** (system-wide, not per-diff) + flakiness verdict + oracle / assertion quality + **negative-space lens** (what the suite cannot detect) + risk-based prioritization (blast radius × bug density). |
+| **llm-researcher-persona** | 602 | Three-tier audit (quick/standard/deep) + reproducibility manifest + ablation evidence (not correlation) + slice analysis with CIs + LLM-judge integrity + agentic forensics + cost/latency tuples + distribution-shift monitoring. |
+| **devops-sre-persona** | 391 | SLO arithmetic + rollback rigor (runtime + gates + practiced) + **toil instrument** + multi-environment drift + observability content quality + deploy-strategy decision + on-call burden + incident-readiness. |
+| **data-engineer-persona** | 443 | Data-quality SLO + lineage (upstream + downstream) + correctness verification + idempotency / replay safety + partitioning + backfill cost + streaming-batch boundary + data contracts + technical retention enforcement. |
+| **ux-copy-persona** | 393 | Error-message rubric + copy-quality rubric + empty-state rubric + **WCAG-anchored a11y** + content-design-system fit + missing strings + microcopy hygiene + i18n readiness. |
+| **compliance-privacy-persona** | 421 | **13-framework taxonomy** (GDPR, CCPA, HIPAA, GLBA, PCI, SOC 2, ISO 27001, FedRAMP, FERPA, COPPA, DPDP, LGPD, sanctions) + DPIA / RoPA + data-subject rights + cross-border lawful-transfer mechanism + breach-notification readiness + sub-processor + retention min/max + audit-evidence durability. |
+| **api-steward-persona** | 414 | Versioning posture + commitment level + **17-row breaking-change subclass taxonomy** with required mitigation per row + deprecation rigor (cited policy, future date, comms, alias) + contract-test matrix + client-diversity assessment + portfolio-drift scan. |
 
-The seven v2 personas ship with a **codified boundary table** —
+The 13 v2 personas ship with a **codified boundary table** —
 each lists every concern in the roundtable and which persona
-owns it. When two v2 personas run in the same roundtable, both
+owns it. When v2 personas run in the same roundtable, all
 defer per the same table rather than rediscovering boundaries
 at runtime. This eliminates the "three competing strategic
 verdicts in one report" failure mode.
