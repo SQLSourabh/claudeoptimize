@@ -7,3 +7,10 @@ Thumbs.db
 # Backup files our own installers create
 *.bak
 .claude/settings.pack.json
+
+# Per-session ephemeral state — keyed by session_id, never useful
+# across machines. The project-level cache (project.json) is
+# explicitly NOT ignored so teams can commit the resolved
+# Checkpoint/EOD path decision.
+.claude/state/*.json
+!.claude/state/project.json

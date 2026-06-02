@@ -43,29 +43,43 @@ messages, or chat — Claude must:
 - `Checkpoint.md` and `EOD_Summary.md` are **append-only** wherever
   they live in the project tree. Do not delete, reorder, or rewrite
   prior entries.
-- **Location resolution.** The hooks scan the project tree for
-  existing `Checkpoint.md` and `EOD_Summary.md` files (skipping
-  `.git`, `node_modules`, `.venv`, `dist`, `build`, etc.) and adopt
-  whatever is already there:
+- **Location resolution.** The hooks resolve `Checkpoint.md` and
+  `EOD_Summary.md` paths via `.claude/state/project.json` (a
+  committable cache). On cache hit, status is `cached` and no
+  scan runs. On cache miss, the hooks scan the project tree
+  (skipping `.git`, `node_modules`, `.venv`, `dist`, `build`,
+  etc.) and write the result to the cache:
   - 0 found → create at project root.
   - 1 found → adopt that path (e.g. `docs/Checkpoint.md`).
-  - 2+ found → pick deterministically (root preferred, else shortest
-    path) and emit a WARNING in `additionalContext` listing every
-    match. Consolidate to a single file to silence the warning.
+  - 2+ found → pick deterministically (root preferred, else
+    shortest path) and emit a WARNING. Set `acknowledged: true`
+    in `project.json` to silence the warning permanently.
 - The `SessionStart` hook surfaces the resolved paths via
   `additionalContext`. **Use those paths**, not assumptions about
   the project root.
-- The `PreCompact` and `Stop` hooks append a structured stub to the
-  resolved `Checkpoint.md`. Before compaction completes, fill in
-  every `<!-- Claude: ... -->` placeholder with cited content from
-  the current session.
+- **The `PreCompact` and `Stop` hooks write a partial-but-true
+  block** — header + Files-touched + Verification-evidence +
+  Slash-commands populated deterministically from session state
+  and the transcript. The four narrative sections (Goals /
+  Decisions / Open / Blockers) carry placeholders. Hooks do
+  NOT prompt Claude to fill them in (that contract was
+  unenforceable; placeholders survived `/compact` unfilled).
+- **`/checkpoint` is the manual narrative-filler.** Run it
+  whenever you want narrative captured. It reads the latest
+  block's `checkpoint-meta` footer to find the transcript,
+  synthesizes Goals / Decisions / Open / Blockers from the
+  JSONL with citations, and replaces the placeholders in
+  place. Idempotent — re-running replaces the four sections.
+- **`/checkpoint --from-transcript <path>`** recovers narrative
+  from any prior JSONL — even sessions that ran before this
+  contract landed. If a block with the matching `block_id`
+  exists in the file it's upgraded in place; otherwise a
+  complete new block is appended.
 - The `/EOD_Summary` command rolls up checkpoint blocks into
   the resolved `EOD_Summary.md`. Four modes: today (default),
   a specific date, `--since-last` (catch up since the latest
   entry already in the file), and
-  `--range YYYY-MM-DD..YYYY-MM-DD`. Append-only and idempotent
-  — never edits prior sections; re-running `--since-last` is a
-  no-op when caught up.
+  `--range YYYY-MM-DD..YYYY-MM-DD`. Append-only and idempotent.
 
 ## 3. Multi-persona reviews
 

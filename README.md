@@ -24,14 +24,29 @@ the hook implementation language so each platform runs natively.
   Claude via `additionalContext`. Skips `.git`, `node_modules`,
   `.venv`, `dist`, `build`, etc.
 - `PreCompact` and `Stop` hooks re-resolve the location and
-  **append** a structured stub, then instruct Claude to fill in the
-  placeholders with cited content before compaction completes.
-- `/EOD_Summary` resolves the same way (via `Glob`), rolls up
-  checkpoint blocks into `EOD_Summary.md`. Four mutually-
-  exclusive modes: today (default), specific date, `--since-last`
-  (catch up since the latest entry already in the file), and
-  `--range YYYY-MM-DD..YYYY-MM-DD`. Append-only, idempotent —
-  re-running `--since-last` after success is a no-op.
+  append a partial-but-true block: header + **Files touched**
+  (from `edit-recorder` session state) + **Verification
+  evidence** (bash exit codes from the transcript) + **Slash
+  commands invoked** (from the transcript) — all populated
+  deterministically. The four narrative sections (Goals /
+  Decisions / Open / Blockers) carry placeholders.
+- **`/checkpoint`** is a new manual slash command that fills in
+  the four narrative sections by reading the session's
+  transcript and synthesizing language-level content with
+  citations. It also accepts `--from-transcript <path>` to
+  recover narrative from old transcripts whose blocks were
+  lost (or never written, before the v2 hook contract).
+- The resolver caches its decision in
+  `.claude/state/project.json` (committable) so the path
+  resolution survives across sessions. Subsequent hook fires
+  return `cached` instead of re-scanning. If the cached path
+  goes missing, the cache invalidates automatically and the
+  resolver falls back to a tree scan.
+- `/EOD_Summary` rolls up checkpoint blocks into
+  `EOD_Summary.md`. Four mutually-exclusive modes: today
+  (default), specific date, `--since-last` (catch up since
+  the latest entry already in the file), and
+  `--range YYYY-MM-DD..YYYY-MM-DD`. Append-only, idempotent.
 
 ### Goal 2 — Multi-persona roundtables (vanilla, no plugins)
 `/persona-roundtable <scope>` runs four phases:
@@ -97,7 +112,8 @@ The pack installs hooks that fire automatically on every `Write`,
 
 ### Goal 5 — Slash commands for the SDLC
 
-Beyond `/persona-roundtable`, `/llm-audit`, `/EOD_Summary`:
+Beyond `/persona-roundtable`, `/llm-audit`, `/EOD_Summary`,
+`/checkpoint`:
 
 | Command | Purpose |
 |---|---|

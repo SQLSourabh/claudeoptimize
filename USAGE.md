@@ -32,26 +32,27 @@ the table of contents, jump to what you need.
 - §12. [/handoff](#12-handoff) — next-session resumption doc
 - §13. [/retro](#13-retro) — session retrospective
 - §14. [/EOD_Summary](#14-eod_summary) — daily rollup
-- §15. [/persona-roundtable](#15-persona-roundtable) — multi-perspective review
-- §16. [/llm-audit](#16-llm-audit) — LLM output forensics
+- §15. [/checkpoint](#15-checkpoint) — fill narrative in latest Checkpoint block (or recover from old transcript)
+- §16. [/persona-roundtable](#16-persona-roundtable) — multi-perspective review
+- §17. [/llm-audit](#17-llm-audit) — LLM output forensics
 
 **Personas (used inside /persona-roundtable)**
 
-- §17. [Persona reference](#17-persona-reference) — when to invoke each
+- §18. [Persona reference](#18-persona-reference) — when to invoke each
 
 **Workflows (combining commands)**
 
-- §18. [Building a new feature, end-to-end](#18-workflow-new-feature)
-- §19. [Fixing a production bug](#19-workflow-bug-fix)
-- §20. [Reviewing someone else's PR](#20-workflow-pr-review)
-- §21. [Auditing a Claude prompt](#21-workflow-prompt-audit)
-- §22. [Resuming after a long break](#22-workflow-resumption)
+- §19. [Building a new feature, end-to-end](#19-workflow-new-feature)
+- §20. [Fixing a production bug](#20-workflow-bug-fix)
+- §21. [Reviewing someone else's PR](#21-workflow-pr-review)
+- §22. [Auditing a Claude prompt](#22-workflow-prompt-audit)
+- §23. [Resuming after a long break](#23-workflow-resumption)
 
 **Ops**
 
-- §23. [Configuration knobs](#23-configuration)
-- §24. [Disabling hooks temporarily](#24-disabling-hooks)
-- §25. [Troubleshooting](#25-troubleshooting)
+- §24. [Configuration knobs](#24-configuration)
+- §25. [Disabling hooks temporarily](#25-disabling-hooks)
+- §26. [Troubleshooting](#26-troubleshooting)
 
 ---
 
@@ -143,7 +144,7 @@ a public test vector or a documented sample value), put it under
 `fixtures/secrets/` — that path is allowlisted.
 
 If you've hit a false positive that **should** be allowed, see
-[Troubleshooting](#25-troubleshooting) for how to tune patterns.
+[Troubleshooting](#26-troubleshooting) for how to tune patterns.
 
 ---
 
@@ -903,7 +904,109 @@ including:
 
 ---
 
-## 15. /persona-roundtable
+## 15. /checkpoint
+
+**Purpose:** Fill in the four narrative sections (Goals,
+Decisions, Open / In-flight, Blockers) of a Checkpoint block by
+reading the session's transcript and synthesizing language-level
+content with citations.
+
+The PreCompact / Stop hook captures **deterministic facts** —
+files touched, bash exit codes, slash commands invoked — but
+cannot capture narrative because hooks cannot wait for Claude
+to think. Run `/checkpoint` whenever you want narrative
+committed.
+
+**Manual.** Not auto-invoked at `/compact` or session end.
+
+### Argument modes
+
+```
+/checkpoint                                  # latest block (default)
+/checkpoint --from-transcript <path-to-jsonl>
+```
+
+| Mode | What it does |
+|---|---|
+| **default** | Upgrade the latest block. Replaces the four `<!-- Claude: fill in via /checkpoint -->` placeholders with cited narrative. Idempotent — re-running replaces the four sections (latest run wins). |
+| **--from-transcript** | Read a supplied JSONL transcript. Compute its `block_id` (sha8 of session_id + transcript path). If a block in `Checkpoint.md` already has a `checkpoint-meta` footer with that `block_id`, upgrade it in place. Otherwise **append a new block** at the end of the file with both deterministic facts AND narrative. Use this to recover sessions whose narrative was lost. |
+
+### Why the recovery mode exists
+
+Before this contract landed, the PreCompact / Stop hook wrote
+stub-only blocks and asked Claude to fill them in "before
+compaction completes" — an unenforceable contract. Many
+sessions ran without ever capturing narrative. If you still
+have those JSONL transcripts (typically in
+`~/.claude/projects/<sanitized-path>/...`), you can recover
+their narrative now:
+
+```
+/checkpoint --from-transcript ~/.claude/projects/proj-X/old-session.jsonl
+```
+
+The command computes the `block_id`, checks `Checkpoint.md`
+for a matching block (typically not found for old sessions),
+then appends a complete block with deterministic facts and
+narrative both filled.
+
+### Synthesis rules
+
+For each narrative section the command:
+
+| Section | Source |
+|---|---|
+| **Goals for this session** | First user message + any `/spec` / `/scope` invocations + topic-shifting messages, each cited by timestamp |
+| **Decisions made** | Assistant messages with decision-shaped content (e.g., "I'll use X because Y"). Skip pure acknowledgments. Cite turn timestamp + the file:line evidence the assistant grounded the decision in. |
+| **Open / In-flight** | Tests attempted but failed; TODOs assistant added but didn't complete; files mentioned for future modification |
+| **Blockers / Unresolved questions** | Explicit `NEEDS-HUMAN-INPUT` / `NEEDS-LEGAL-REVIEW` flags + final-message open questions to the human |
+
+If the transcript is sparse, the narrative is sparse. **One
+cited bullet beats five invented ones.**
+
+### Append-only at file level
+
+Edits are confined to the target block. Prior blocks must be
+byte-identical pre/post-write. The command verifies this
+post-write and errors loudly on any divergence rather than
+auto-repairing.
+
+### Examples
+
+```
+# Most common: capture today's session narrative right after
+# /compact or before stop.
+/checkpoint
+
+# Recovery: a session ran before the v2 hook contract landed;
+# you still have the JSONL.
+/checkpoint --from-transcript ~/.claude/projects/proj-X/abc-123.jsonl
+
+# Idempotent: re-running default replaces the four sections.
+/checkpoint
+/checkpoint    # same block; replaces narrative with the latest synthesis
+```
+
+### Confirmation report
+
+After write, the command prints:
+
+```
+/checkpoint update — <mode> mode
+- Target file:           <path>
+- Mode:                  default | from-transcript-existing | from-transcript-new
+- Transcript:            <path>
+- block_id:              <id>
+- Block timestamp:       <## Checkpoint @ ts>
+- Sections filled:       Goals | Decisions | Open | Blockers
+- Bytes changed:         <N> (inside target block only)
+- Append-only verified:  yes | NO — see error
+- Citations attached:    <count>
+```
+
+---
+
+## 16. /persona-roundtable
 
 **Purpose:** Multi-perspective evidence-grounded review of a
 change, scope, or decision. Up to 15 personas in parallel, then
@@ -1223,7 +1326,7 @@ ERROR: spawn set is empty after applying selection. Aborting.
 
 ---
 
-## 16. /llm-audit
+## 17. /llm-audit
 
 **Purpose:** Standalone audit of an LLM prompt, agent definition,
 or transcript. Powered by the `llm-researcher-persona` (v2 — full
@@ -1457,7 +1560,7 @@ Next:
 
 ---
 
-# 17. Persona reference
+# 18. Persona reference
 
 You typically use these inside `/persona-roundtable`, but each
 persona file can also be invoked directly via the `Agent` tool if
@@ -1513,7 +1616,7 @@ roundtable ceremony.
 
 # Workflows
 
-## 18. Workflow: new feature
+## 19. Workflow: new feature
 
 End-to-end flow combining most of the pack:
 
@@ -1578,7 +1681,7 @@ flowchart TD
 
 ---
 
-## 19. Workflow: bug fix
+## 20. Workflow: bug fix
 
 ```mermaid
 flowchart TD
@@ -1608,7 +1711,7 @@ flowchart TD
 
 ---
 
-## 20. Workflow: PR review
+## 21. Workflow: PR review
 
 ```mermaid
 flowchart TD
@@ -1628,7 +1731,7 @@ flowchart TD
 
 ---
 
-## 21. Workflow: prompt audit
+## 22. Workflow: prompt audit
 
 ```mermaid
 flowchart TD
@@ -1644,7 +1747,7 @@ flowchart TD
 
 ---
 
-## 22. Workflow: resumption
+## 23. Workflow: resumption
 
 You haven't touched a project for two weeks.
 
@@ -1668,7 +1771,7 @@ flowchart TD
 
 ---
 
-# 23. Configuration
+# 24. Configuration
 
 | Env var | Default | Effect |
 |---|---|---|
@@ -1690,7 +1793,7 @@ claude
 
 ---
 
-# 24. Disabling hooks temporarily
+# 25. Disabling hooks temporarily
 
 ### One-off bypass (in-message)
 
@@ -1723,7 +1826,7 @@ file can stay on disk; it just won't be wired up.
 
 ---
 
-# 25. Troubleshooting
+# 26. Troubleshooting
 
 ### "secrets-guard blocked something I genuinely needed to write"
 

@@ -71,6 +71,7 @@ require editing the installer.
     │   └── edit-recorder.sh                # PostToolUse — silent state
     ├── commands/                           # 10 slash commands
     │   ├── EOD_Summary.md                  # /EOD_Summary [date|--since-last|--range a..b]
+    │   ├── checkpoint.md                   # /checkpoint [--from-transcript <jsonl>]  (NEW)
     │   ├── persona-roundtable.md           # /persona-roundtable [--brief|--exclude|--only]
     │   ├── llm-audit.md                    # /llm-audit [--tier quick|standard|deep]
     │   ├── scope.md                        # /scope <items>
@@ -124,6 +125,7 @@ require editing the installer.
 | `/handoff [topic]` | Forward-looking "next session starts here" doc with the exact next command to run. |
 | `/retro` | Session retrospective + opt-in CLAUDE.md edit proposals. |
 | `/EOD_Summary [date\|--since-last\|--range a..b]` | Roll up checkpoint blocks into `EOD_Summary.md` (append-only). Today by default; specific date; `--since-last` catches up from the latest entry already in the file; `--range` for explicit windows. Idempotent. |
+| `/checkpoint [--from-transcript <jsonl>]` | Fill in the four narrative sections (Goals / Decisions / Open / Blockers) of a Checkpoint block. Default: upgrade the latest block. `--from-transcript` recovers narrative from an old JSONL — appends a new block if no matching `block_id` is found in the file. Manual; not auto-invoked at /compact. |
 | `/persona-roundtable <topic\|path\|gitref\|brief.md> [--brief] [--exclude N,M] [--only N,M]` | Multi-perspective review with persona-ordinal selection. |
 | `/llm-audit <prompt-path> [reference-set] [--tier quick\|standard\|deep]` | Standalone LLM forensics + bias map + falsifiable improvement plan + continuous-eval loop. |
 
@@ -176,7 +178,7 @@ play.
 ```bash
 rm -rf .claude/hooks/_*.{sh,py} \
        .claude/hooks/{ensure-checkpoint-files,append-checkpoint,secrets-guard,scope-guard,test-first-enforcer,blast-radius,edit-recorder}.sh \
-       .claude/commands/{EOD_Summary,persona-roundtable,llm-audit,scope,spec,repro,adr,pr-preflight,handoff,retro}.md \
+       .claude/commands/{EOD_Summary,checkpoint,persona-roundtable,llm-audit,scope,spec,repro,adr,pr-preflight,handoff,retro}.md \
        .claude/agents/{ceo,cfo,cto,architect,pm,software-engineer,qa,llm-researcher,devops-sre,data-engineer,ux-copy,compliance-privacy,api-steward,security-engineer,independent-reviewer}-persona.md
 # Remove the hook entries from .claude/settings.json by hand,
 # or restore from .bak if the installer made one.
